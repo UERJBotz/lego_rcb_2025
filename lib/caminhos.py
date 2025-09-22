@@ -1,167 +1,92 @@
-from lib.polyfill    import Enum, heappop, heappush
-from cores           import cor
+from polyfill    import Enum, heappop, heappush
 
-
-tipo_celula = Enum("tipo_celula", ["RUA", "EDIFICIO"])
+tipo_celula = Enum("tipo_celula", ["RUA",
+                                   "CRUZ",
+                                   "NADA",
+                                   "SAFE"])
 
 tipo_parede = Enum("tipo_parede", ["PAREDE",
-                                   "ENTRADA",
-                                   "ENTRADA_COM_CANO"])
+                                   "ENTRADA"])
+
+estado_celula = Enum("estado_celula", ["LIVRE",
+                                       "OCUPADA",
+                                       "INCERTO"])
 
 posicao_parede = Enum("posicao_parede", ["N", "L", "S", "O"])
 
-posicao_desembarque_adulto = {
-    "AZUL":     ((4, 2)),
-    "VERDE":    ((2, 4)),
-    "VERMELHO": ((2, 2)),
-    "MARROM":   ((0, 2)),
-}
-
-posicao_desembarque_crianca = {
-    "AZUL":   ((0, 4)),
-    "VERDE":  ((0, 0), (2, 0), (4, 0)),
-    "MARROM": ((4, 4)),
-}
-
-class Edificio:
-    def __init__(self, nome, cor, paredes):
-        self.nome = nome
-        self.cor  = cor
-        self.tipo = tipo_celula.EDIFICIO
-        self.paredes = paredes
-        self.ocupada = True
-
 class Rua:
     def __init__(self):
-        self.ocupada = False
         self.tipo = tipo_celula.RUA
-    
-# celula = Edificio | Rua
+        self.estado = estado_celula.INCERTO
+    def __str__(self):
+        return '*'
+
+class Cruz:
+    def __init__(self):
+        self.tipo = tipo_celula.RUA
+        self.estado = estado_celula.LIVRE
+    def __str__(self):
+        return '*'
+
+class Safe:
+    def __init__(self):
+        self.tipo = tipo_celula.SAFE
+        self.estado = estado_celula.LIVRE
+    def __str__(self):
+        return '#'
+
+class Nada:
+    def __init__(self):
+        self.tipo = tipo_celula.NADA
+        self.estado = estado_celula.OCUPADA
+    def __str__(self):
+        return ' '
+
+# celula = Rua | Cruzamento | Safezone | Void
 
 def imprime_matriz(matriz):
     """Imprime a matriz de forma alinhada."""
     largura_maxima = 12
 
+    print(end='  ')
+    for i in range(len(matriz[0])):
+        print((f"{i}     ")[:2], end=' ')
+    print()
+
+    i = 0
     for linha in matriz:
+        print(i, end=' ')
+        i += 1
+
         for celula in linha:
-            if celula.tipo == tipo_celula.EDIFICIO:
-                texto = celula.nome
-            else:
-                texto = "OBSTACULO" if celula.ocupada else "RUA"
-            print(texto.ljust(largura_maxima), end=" ")
+            texto = str(celula)
+            estado = 'X' if celula.estado == estado_celula.OCUPADA else (
+                     '?' if celula.estado == estado_celula.INCERTO else texto)
+            print(estado*2, end=" ")
         print()
 
-def coloca_obstaculo(x, y):
-    if mapa[x][y].tipo == tipo_celula.EDIFICIO: return #! falhar mais alto
-
-    mapa[x][y].ocupada = True
-
-def tira_obstaculo(x, y):
-    if mapa[x][y].tipo == tipo_celula.EDIFICIO: return
-
-    mapa[x][y].ocupada = False
-
-def coloca_passageiro(edificio: Edificio, entrada: str): #ver como faz para escolher a entrada para ocupar
-    if edificio.tipo == tipo_celula.RUA: return False
-    if entrada not in "NSLO":            return False
-
-    idx = posicao_parede[entrada]
-    if edificio.paredes[idx] != tipo_parede.ENTRADA: return False
-
-    if all(map(lambda p: p != tipo_parede.ENTRADA, edificio.paredes)):
-        return False #! falhar mais alto
-
-    edificio.paredes[idx] = tipo_parede.ENTRADA_COM_CANO
-    return True
-
-bakery = Edificio(
-    nome = "BAKERY",
-    cor = cor.MARROM,
-    paredes = {
-        posicao_parede.N: tipo_parede.PAREDE,
-        posicao_parede.S: tipo_parede.ENTRADA,
-        posicao_parede.L: tipo_parede.PAREDE,
-        posicao_parede.O: tipo_parede.ENTRADA
-    }
-)
-school = Edificio(
-    nome = "SCHOOL",
-    cor = cor.AZUL,
-    paredes = {
-        posicao_parede.N: tipo_parede.PAREDE,
-        posicao_parede.S: tipo_parede.ENTRADA,
-        posicao_parede.L: tipo_parede.PAREDE,
-        posicao_parede.O: tipo_parede.ENTRADA
-    }
-)
-drugstore = Edificio(
-    nome = "DRUGSTORE",
-    cor = cor.VERMELHO,
-    paredes = {
-        posicao_parede.N: tipo_parede.PAREDE,
-        posicao_parede.S: tipo_parede.PAREDE,
-        posicao_parede.L: tipo_parede.ENTRADA,
-        posicao_parede.O: tipo_parede.ENTRADA
-    }
-)
-city_hall = Edificio(
-    nome = "CITY HALL",
-    cor = cor.VERDE,
-    paredes = {
-        posicao_parede.N: tipo_parede.ENTRADA,
-        posicao_parede.S: tipo_parede.ENTRADA,
-        posicao_parede.L: tipo_parede.PAREDE,
-        posicao_parede.O: tipo_parede.PAREDE
-    }
-)
-museum = Edificio(
-    nome = "MUSEUM",
-    cor = cor.AZUL,
-    paredes = {
-        posicao_parede.N: tipo_parede.ENTRADA,
-        posicao_parede.S: tipo_parede.PAREDE,
-        posicao_parede.L: tipo_parede.ENTRADA,
-        posicao_parede.O: tipo_parede.PAREDE
-    }
-)
-library = Edificio(
-    nome = "LIBRARY",
-    cor = cor.VERMELHO,
-    paredes = {
-        posicao_parede.N: tipo_parede.ENTRADA,
-        posicao_parede.S: tipo_parede.PAREDE,
-        posicao_parede.L: tipo_parede.ENTRADA,
-        posicao_parede.O: tipo_parede.PAREDE
-    }
-)
-park_aberto = lambda: Edificio(
-    nome = "PARK",
-    cor = cor.VERDE,
-    paredes = {
-        posicao_parede.N: tipo_parede.PAREDE,
-        posicao_parede.S: tipo_parede.PAREDE,
-        posicao_parede.L: tipo_parede.ENTRADA,
-        posicao_parede.O: tipo_parede.PAREDE
-    }
-)
-park_fechado = lambda: Edificio(
-    nome = "PARK",
-    cor = cor.VERDE,
-    paredes = {
-        posicao_parede.N: tipo_parede.PAREDE,
-        posicao_parede.S: tipo_parede.PAREDE,
-        posicao_parede.L: tipo_parede.PAREDE,
-        posicao_parede.O: tipo_parede.PAREDE
-    }
-)
 #! ver se lambdar os outros também
 
+def coloca_obstaculo(x, y):
+    cel = mapa[y][x]
+    if cel.tipo == tipo_celula.RUA: #! falhar mais alto
+        cel.estado = estado_celula.OCUPADA
+
+def tira_obstaculo(x, y):
+    cel = mapa[y][x]
+    if cel.tipo == tipo_celula.RUA:
+        cel.estado = estado_celula.LIVRE
+
 mapa = [
-    [park_aberto(),   Rua(),  bakery,     Rua(),  school,     Rua()],
-    [park_fechado(),  Rua(),  Rua(),      Rua(),  Rua(),      Rua()],
-    [park_aberto(),   Rua(),  drugstore,  Rua(),  city_hall,  Rua()],
-    [park_fechado(),  Rua(),  Rua(),      Rua(),  Rua(),      Rua()],
-    [park_aberto(),   Rua(),  museum,     Rua(),  library,    Rua()],
+    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
+    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
+    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
+    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
+    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
+    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
+    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
+    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
+    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()]
 ]
 
 ## implementação do A* (adaptada de <https://www.geeksforgeeks.org/a-search-algorithm-in-python/>)
@@ -185,13 +110,14 @@ def dist_manhatan(posicao_atual, destino):
     return abs(atual_x - dest_x) + abs(atual_y - dest_y)
 
 def dentro_dos_limites(matriz, cell):
-    x, y = cell
-    return 0 <= x < len(matriz) and 0 <= y < len(matriz[0])
+    row, col = cell
+    return 0 <= row < len(matriz) and 0 <= col < len(matriz[0])
 
 def celula_livre(grid, cell):
     row, col = cell
-    return not grid[row][col].ocupada
+    return grid[row][col].estado == estado_celula.LIVRE
 
+#!
 def eh_destino(src, dest): #! acho que dá pra mudar isso pra parar em frente à porta
     row, col = src
     return row == dest[0] and col == dest[1]
@@ -411,3 +337,4 @@ def achar_movimentos(pos_ini, pos_fim, orientacao):
     print(f"achar_movimentos: {caminho_rel=}")
 
     return (movimento_relativo(caminho_rel, orientacao), orientacao_final) #! tratar orientação final None e caminho vazio no chamador
+
