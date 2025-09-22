@@ -1,5 +1,6 @@
 from pybricks.tools import StopWatch, wait
 from pybricks.parameters import Color
+from bluetooth import ler_botoes, Botão
 
 _ = 0
 H = 100
@@ -141,7 +142,7 @@ def tela_escolher_cor(hub, enum_cor, selecao, intervalo_anim=110, intervalo_bota
         hub.light.on(cor2Color[selecao])
         while sw.time() < intervalo_anim:
             wait(intervalo_botao)
-            botoes = hub.buttons.pressed()
+            botoes = ler_botoes(hub)
             if botoes: return botoes
 
     return {}

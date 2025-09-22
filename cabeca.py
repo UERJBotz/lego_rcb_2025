@@ -8,12 +8,12 @@ from pybricks.robotics   import DriveBase
 
 from lib.bipes     import bipe_calibracao, bipe_cabeca, musica_vitoria, musica_derrota
 from lib.caminhos  import achar_movimentos, tipo_movimento, posicao_desembarque_adulto
-
 from urandom import choice
 
 import cores
 import gui
 import bluetooth as blt
+from bluetooth import Botão
 
 
 TAM_BLOCO   = 300
@@ -62,7 +62,7 @@ def setup():
     rodas = DriveBase(roda_esq, roda_dir,
                       wheel_diameter=88, axle_track=145.5) #! ver depois se recalibrar
 
-    botao_calibrar = Button.CENTER
+    botao_calibrar = Botão.centro
 
     rodas_conf_padrao = rodas.settings() #! CONSTANTIZAR
     vel_padrao     = rodas_conf_padrao[0]
@@ -441,10 +441,10 @@ def seguir_caminho(pos, obj): #! lidar com outras coisas
         virar_direita()
 
 def menu_calibracao(hub, sensor_esq, sensor_dir,
-                                     botao_parar=Button.BLUETOOTH,
-                                     botao_aceitar=Button.CENTER,
-                                     botao_anterior=Button.LEFT,
-                                     botao_proximo=Button.RIGHT):
+                                     botao_parar=Botão.bluetooth,
+                                     botao_aceitar=Botão.centro,
+                                     botao_anterior=Botão.esquerdo,
+                                     botao_proximo=Botão.direito):
     mapa_hsv = cores.mapa_hsv.copy()
 
     selecao = 0
@@ -472,17 +472,19 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
 
 
 def main(hub):
+    #while True:
+        #print(f"{sensor_cor_dir.hsv()}, {sensor_cor_esq.hsv()}")
+        #print(cores.identificar(sensor_cor_dir.color()))
     global orientacao_estimada
     crono = StopWatch()
-    while crono.time() < 100: #! ativar calibração quando for usar
-        botões = hub.buttons.pressed()
-        if botao_calibrar in botões:
+    while True: #crono.time() < 500: #! ativar calibração quando for usar
+        botões = blt.ler_botoes(hub)
+        if botões and botao_calibrar in botões:
             bipe_calibracao(hub)
             #! levar os dois sensores em consideração separadamente
             mapa_hsv = menu_calibracao(hub, sensor_cor_esq, sensor_cor_dir)
             cores.repl_calibracao(mapa_hsv)#, lado="esq")
             return
-    hub.system.set_stop_button((Button.BLUETOOTH,))
 
     resetar_garra(hub)
     while True:

@@ -1,4 +1,5 @@
 from lib.polyfill import Enum
+from pybricks.parameters import Button
 
 TX_CABECA = 24
 TX_BRACO  = 69
@@ -10,6 +11,7 @@ comando_bt = Enum("comando_bt", ["fecha_garra",
                                  "ver_cor_passageiro",
                                  "ver_hsv_passageiro",
                                  "ver_distancias",
+                                 "ler_botoes",
                                  #! fazer um enum comandos e outro respostas
                                  "fechei",
                                  "abri",
@@ -17,7 +19,22 @@ comando_bt = Enum("comando_bt", ["fecha_garra",
                                  "abaixei",
                                  "cor_passageiro",
                                  "hsv_passageiro",
-                                 "distancias"])
+                                 "distancias",
+                                 "li_botoes",
+                                 ])
+
+Botão = Enum("Botão", ["esquerdo",
+                       "direito",
+                       "bluetooth",
+                       "centro"])
+
+def Button2Botão(bot: Button):
+    return {
+        Button.BLUETOOTH: Botão.bluetooth,
+        Button.LEFT: Botão.esquerdo,
+        Button.RIGHT: Botão.direito,
+        Button.CENTER: Botão.centro,
+    }.get(bot)
 
 def esperar_resposta(hub, esperado, canal=TX_BRACO):
     comando = -1
@@ -44,26 +61,10 @@ def abrir_garra(hub):
     return esperar_resposta(hub, comando_bt.abri)
 
 def levantar_garra(hub):
-    print("levantar_garra:")
-    hub.ble.broadcast((comando_bt.levanta_garra,))
-    return esperar_resposta(hub, comando_bt.levantei)
+    pass
 
-def abaixar_garra(hub):
-    print("abaixar_garra:")
-    hub.ble.broadcast((comando_bt.abaixa_garra,))
-    return esperar_resposta(hub, comando_bt.abaixei)
 
-def ver_cor_passageiro(hub):
-    print("ver_cor_passageiro:")
-    hub.ble.broadcast((comando_bt.ver_cor_passageiro,))
-    return esperar_resposta(hub, comando_bt.cor_passageiro)[0]
-
-def ver_hsv_passageiro(hub):
-    print("ver_hsv_passageiro:")
-    hub.ble.broadcast((comando_bt.ver_hsv_passageiro,))
-    return esperar_resposta(hub, comando_bt.hsv_passageiro)
-
-def ver_distancias(hub):
-    print("ver_distancias:")
-    hub.ble.broadcast((comando_bt.ver_distancias,))
-    return esperar_resposta(hub, comando_bt.distancias)
+def ler_botoes(hub):
+    print("ler:")
+    hub.ble.broadcast((comando_bt.ler_botoes,))
+    return esperar_resposta(hub, comando_bt.li_botoes)
