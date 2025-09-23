@@ -113,6 +113,10 @@ def dentro_dos_limites(matriz, cell):
     row, col = cell
     return 0 <= row < len(matriz) and 0 <= col < len(matriz[0])
 
+def celula_ocupada(grid, cell):
+    row, col = cell
+    return grid[row][col].estado == estado_celula.OCUPADA
+
 def celula_livre(grid, cell):
     row, col = cell
     return grid[row][col].estado == estado_celula.LIVRE
@@ -156,7 +160,7 @@ def a_estrela(grid, src, dest):
 
     if not celula_livre(grid, src):
         ok = False; print(f"a_estrela: origem bloqueada {src}")
-    if not celula_livre(grid, dest):
+    if celula_ocupada(grid, dest):
         ok = False; print(f"a_estrela: destino bloqueado {dest}")
 
     if not ok: return None
@@ -204,8 +208,8 @@ def a_estrela(grid, src, dest):
             new_j = j + dir[1]
             new = new_i, new_j
 
-            # If the successor is valid, unblocked, and not visited
-            if dentro_dos_limites(grid, new) and celula_livre(grid, new) and not closed_list[new_i][new_j]:
+            # If the successor is valid, (unblocked or is destiny), and not visited
+            if dentro_dos_limites(grid, new) and (celula_livre(grid, new) or eh_destino(new, dest)) and not closed_list[new_i][new_j]:
                 # If the successor is the destination
                 if eh_destino(new, dest):
                     # Set the parent of the destination cell
