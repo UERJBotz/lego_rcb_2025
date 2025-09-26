@@ -1,6 +1,7 @@
 from pybricks.tools import StopWatch, wait
 from pybricks.parameters import Color
 from bluetooth import ler_botoes, Botão
+from pybricks.hubs import PrimeHub
 
 _ = 0
 H = 100

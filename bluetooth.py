@@ -12,6 +12,7 @@ comando_bt = Enum("comando_bt", ["fecha_garra",
                                  "ver_hsv_passageiro",
                                  "ver_distancias",
                                  "ler_botoes",
+                                 "menu_gui",
                                  #! fazer um enum comandos e outro respostas
                                  "fechei",
                                  "abri",
@@ -21,6 +22,7 @@ comando_bt = Enum("comando_bt", ["fecha_garra",
                                  "hsv_passageiro",
                                  "distancias",
                                  "li_botoes",
+                                 "mostrei_menu",
                                  ])
 
 Botão = Enum("Botão", ["esquerdo",
@@ -68,3 +70,8 @@ def ler_botoes(hub):
     print("ler:")
     hub.ble.broadcast((comando_bt.ler_botoes,))
     return esperar_resposta(hub, comando_bt.li_botoes)
+
+def menu_gui(hub):
+    print("seleção: ")
+    hub.ble.broadcast((comando_bt.menu_gui,))
+    return esperar_resposta(hub, comando_bt.mostrei_menu)

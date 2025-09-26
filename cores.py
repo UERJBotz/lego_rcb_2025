@@ -107,19 +107,24 @@ def coletar_valores(hub, botao_parar, esq=None, dir=None) -> tuple[hsv, hsv, hsv
 
     return (minm, tuple(map(round, med)), maxm)
 
-def identificar_por_intervalo_hsv(hsv, mapa) -> cor: # type: ignore
+
+def identificar_por_intervalo_hsv(color, mapa) -> cor: # type: ignore
+    hsv = color.h, color.s, color.v
     h, s, v = hsv
     
+    '''
     if   v <= 20: #! usar valores do arquivo
         return cor.PRETO
     elif s <= 10 and v >= 90:
         return cor.BRANCO
+    '''
 
     for i, (m, mm, M) in enumerate(mapa):
         hm, _, _ = m
         hM, _, _ = M
 
-        if h in range(hm, hM): return i
+        if h in range(hm, hM): 
+            return i
     return cor.NENHUMA
 
 def identificar_por_hue_medio(hsv, mapa) -> int:
@@ -148,13 +153,7 @@ def identificar(color, sensor="chao") -> cor: # type: ignore
     elif sensor == "chao":
         identificar_cor = identificar_por_intervalo_hsv
         mapa = mapa_hsv
-
-    try: #! ver jeito melhor
-        return identificar_cor(color, mapa)
-    except TypeError as e:
-        print(f"cores.identificar: {e}")
-        hsv = color.h, color.s, color.v
-        return identificar_cor(hsv, mapa)
+    return identificar_cor(color, mapa)
 
 def pista_unificado(color, hsv):
     deles = (color == Color.WHITE)

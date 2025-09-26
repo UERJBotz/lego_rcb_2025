@@ -9,6 +9,7 @@ from pybricks.robotics   import DriveBase
 from lib.bipes     import bipe_calibracao, bipe_cabeca, musica_vitoria, musica_derrota
 from lib.caminhos  import achar_movimentos, tipo_movimento, posicao_desembarque_adulto
 from urandom import choice
+from cacamba import *
 
 import cores
 import gui
@@ -68,6 +69,8 @@ def setup():
     vel_padrao     = rodas_conf_padrao[0]
     vel_ang_padrao = rodas_conf_padrao[2]
     vels_padrao = vel_padrao, vel_ang_padrao
+
+    cacambas = vetor_cacambas()
 
     return hub
 
@@ -447,11 +450,12 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
                                      botao_proximo=Botão.direito):
     mapa_hsv = cores.mapa_hsv.copy()
 
-    selecao = 0
+    global selecao = 0
 
     wait(150)
     while True:
-        botões = gui.tela_escolher_cor(hub, cores.cor, selecao)
+        #botões = gui.tela_escolher_cor(hub, cores.cor, selecao)
+        botões = menu_gui(hub)
 
         if   botao_proximo  in botões:
             selecao = (selecao + 1) % len(cores.cor)

@@ -3,6 +3,7 @@ from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
 from pybricks.parameters import Port, Button, Color, Direction
 from pybricks.tools      import wait, StopWatch
+from cabeca import selecao
 
 from bluetooth import comando_bt, TX_BRACO, TX_CABECA, Button2Botão
 
@@ -120,3 +121,7 @@ def main(hub):
             print(botao)
             hub.ble.broadcast((comando_bt.li_botoes, botao))
 
+        elif comando == comando_bt.menu_gui:
+            print("pediu menu")
+            botões = gui.tela_escolher_cor(hub, cores.cor, selecao)
+            hub.ble.broadcast((comando_bt.mostrei_menu, botões))
