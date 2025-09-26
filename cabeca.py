@@ -16,7 +16,7 @@ import gui
 import bluetooth as blt
 
 VEL_ALINHAR = 80
-VEL_ANG_ALINHAR = 30
+VEL_ANG_ALINHAR = 20
 GIRO_MAX_ALINHAR = 70
 
 TAM_QUARTEIRAO = 300
@@ -147,6 +147,7 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
 def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     #! usar verificar_cor em vez disso?
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
+    print(f"esq: {esq}, dir: {dir}")
     return ((not cores.area_livre_unificado(*esq) or not cores.area_livre_unificado(*dir)),
             esq, dir)
 
@@ -231,10 +232,10 @@ def alinha_parede(vel, vel_ang, giro_max=45,
         parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO//2)
         if not parou:
             (dist,) = extra
-            print(f"alinha_parede: reto branco {dist}")
+            print(f"alinha_parede: reto pista {dist}")
             return False # viu só branco, não sabemos se tá alinhado
     
-        (dir, esq) = extra
+        (esq, dir) = extra
         if  alinhado_parede(esq, dir):
             print("alinha_parede: reto não pista")
             return True
