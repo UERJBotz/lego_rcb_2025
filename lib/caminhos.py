@@ -301,44 +301,18 @@ def movimento_relativo(cam_rel, orientacao_ini):
 
         idx_orientacao = nova_idx_orientacao
 
-    return movimentos
+    return movimentos, posicao_parede(idx_orientacao)
 
 
 def achar_movimentos(pos_ini, pos_fim, orientacao):
-    lin, col = pos_fim
-    
-    indice = next((i for i, valor in mapa[lin][col].paredes.items() if valor == tipo_parede.ENTRADA))
-    print(f"achar_movimentos: {indice=}")
-    
-    if indice is None:
-        print("achar_movimentos: não há entradas disponíveis")
-        return []
-    
-    orientacao_final = None
-    if   indice == posicao_parede.N:
-        pos_fim = (lin-1, col)
-        orientacao_final = "S"
-        print(f"achar_movimentos: pos_parede=N: {indice=}, {orientacao_final=}")
-    elif indice == posicao_parede.S:
-        pos_fim = (lin+1, col)
-        orientacao_final = "N"
-        print(f"achar_movimentos: pos_parede=S: {indice=}, {orientacao_final=}")
-    elif indice == posicao_parede.L:
-        pos_fim = (lin, col+1)
-        orientacao_final = "O"
-        print(f"achar_movimentos: pos_parede=O: {indice=}, {orientacao_final=}")
-    elif indice == posicao_parede.O:
-        pos_fim = (lin, col-1)
-        orientacao_final = "L"
-        print(f"achar_movimentos: pos_parede=L: {indice=}, {orientacao_final=}")
-    else:
-        print(f"achar_movimentos: {indice=}: {pos_ini=}, {pos_fim=}. {orientacao=}, {orientacao_final=}")
-        assert False
-    
-    caminho     = a_estrela(mapa, pos_ini, pos_fim)
+    pos_ini = pos_ini[1], pos_ini[0]
+    pos_fim = pos_fim[1], pos_fim[0]
+    caminho = a_estrela(mapa, pos_ini, pos_fim)
     print("achar_movimentos:", *caminho, sep=" -> ")
     caminho_rel = caminho_relativo(caminho)
     print(f"achar_movimentos: {caminho_rel=}")
 
-    return (movimento_relativo(caminho_rel, orientacao), orientacao_final) #! tratar orientação final None e caminho vazio no chamador
+    movimentos, ori_fim = movimento_relativo(caminho_rel, orientacao)
+    print(orientacao, [tipo_movimento(i) for i in movimentos], ori_fim)
+    return movimentos, ori_fim
 
