@@ -157,7 +157,19 @@ def identificar(color, sensor="chao") -> cor: # type: ignore
         return identificar_cor(hsv, mapa)
 
 def pista_unificado(color, hsv):
-    deles = (color == Color.WHITE)
+    deles = (color == Color.WHITE) or (color == Color.GREEN)
+    return deles
+
+def area_livre_unificado(color, hsv):
+    deles = (color == Color.GREEN)
+    return deles
+
+def beco_unificado(color, hsv):
+    deles = (color == Color.RED)
+    return deles
+
+def azul_unificado(color, hsv):
+    deles = ((color == Color.BLUE))
     return deles
 
 def parede_unificado(color, hsv):
@@ -166,25 +178,12 @@ def parede_unificado(color, hsv):
              (color == Color.YELLOW))
 
     combinado = (((color == Color.RED) or
-                 (color == Color.BLUE)) and
+                  (color == Color.BLUE)) and
                 ((identificar(hsv) == cor.PRETO) or
                  (identificar(hsv) == cor.BRANCO) or
                  (identificar(hsv) == cor.NENHUMA)))
     #! checar de novo se precisa do combinado
     return deles or combinado
-
-def beco_unificado(color, hsv):
-    deles = (color == Color.RED)
-    return deles
-
-def lombada_unificado(color, hsv):
-    combinado = ((color == Color.WHITE) and
-                 (identificar(hsv) != cor.AZUL)) #! talvez == BRANCO, pq é isso
-    return combinado
-
-def azul_unificado(color, hsv):
-    deles = ((color == Color.BLUE))
-    return deles
 
 def certificar(sensor_dir, sensor_esq, uni, uni2=None) -> bool:
     if uni2 is None:

@@ -42,6 +42,7 @@ bipe_inicio = lambda hub: hub.speaker.beep(frequency=500, duration=100)
 bipe_final  = lambda hub: hub.speaker.beep(frequency=250, duration=250)
 
 bipe_calibracao = lambda hub: hub.speaker.beep(frequency=300, duration=100)
+bipe_separador  = lambda hub: hub.speaker.beep(frequency=600, duration=200)
 bipe_cabeca     = lambda hub: hub.speaker.beep(frequency=600, duration=100)
 
 bipe_falha      = lambda hub: (hub.speaker.beep(frequency=1200, duration=1000), 

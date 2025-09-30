@@ -8,9 +8,14 @@ if id == ID.CABECA:
     hub = cabeca.setup()
     print(hub.battery.voltage())
 
-    bipe_inicio(hub)
-    cabeca.main(hub)
-    bipe_final(hub)
+    try:
+        bipe_inicio(hub)
+        cabeca.main(hub)
+        bipe_final(hub)
+    except Exception as e:
+        bipe_falha(hub)
+        raise e
+
 elif id == ID.BRACO:
     import braco
     hub = braco.setup()

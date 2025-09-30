@@ -6,7 +6,7 @@ from pybricks.parameters import Port, Stop, Side, Direction, Button, Color
 from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
-from lib.bipes     import bipe_calibracao, bipe_cabeca, musica_vitoria, musica_derrota
+from lib.bipes     import bipe_calibracao, bipe_cabeca, bipe_separador, musica_vitoria, musica_derrota
 from lib.caminhos  import achar_movimentos, tipo_movimento
 
 from urandom import choice
@@ -15,17 +15,17 @@ import cores
 import gui
 import bluetooth as blt
 
+VEL_ALINHAR = 80
+VEL_ANG_ALINHAR = 20
+GIRO_MAX_ALINHAR = 70
 
-TAM_BLOCO   = 300
-TAM_BLOCO_Y = 294 # na nossa arena os quadrados não são 30x30cm (são 29.4 por quase 30)
+TAM_QUARTEIRAO = 300
+TAM_BLOCO = TAM_QUARTEIRAO//2
+TAM_FAIXA = 20
 
-TAM_FAIXA = 30
-TAM_BLOCO_BECO = TAM_BLOCO_Y - TAM_FAIXA # os blocos dos becos são menores por causa do vermelho
+PISTA_TODA = TAM_QUARTEIRAO*6
 
-PISTA_TODA = TAM_BLOCO*6
-
-DIST_EIXO_SENSOR = 80 #mm
-DIST_EIXO_SENS_DIST = 45 #mm   #! checar
+DIST_EIXO_SENSOR = 45
 
 
 #! checar stall: jogar exceção
@@ -44,8 +44,7 @@ def setup():
                                      blt.TX_RABO])
     print(hub.system.name())
     while hub.system.name() != "spike1":
-        hub.speaker.beep(frequency=1024)
-        wait(200)
+        hub.speaker.beep(frequency=1024); wait(200)
     else:
         hub.light.blink(Color.RED, [100,50,200,100])
     blt.init(hub)
@@ -62,7 +61,7 @@ def setup():
     roda_dir = Motor(Port.B, positive_direction=Direction.COUNTERCLOCKWISE)
 
     rodas = DriveBase(roda_esq, roda_dir,
-                      wheel_diameter=88, axle_track=145.5) #! ver depois se recalibrar
+                      wheel_diameter=88, axle_track=145.5) #! recalibrar
 
     botao_calibrar = Button.CENTER
 
@@ -138,11 +137,8 @@ def parar_girar():
 def dar_re(dist):
     rodas.straight(-dist)
 
-def dar_re_meio_bloco(eixo_menor=False):
-    if eixo_menor:
-        dar_re(TAM_BLOCO_Y//2 - DIST_EIXO_SENSOR)
-    else:
-        dar_re(TAM_BLOCO//2   - DIST_EIXO_SENSOR)
+def dar_re_meio_quarteirao():
+    dar_re(TAM_BLOCO - DIST_EIXO_SENSOR)
 
 #! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
 
@@ -152,10 +148,13 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
     return ((not cores.pista_unificado(*esq) or not cores.pista_unificado(*dir)),
             esq, dir)
 
-def ver_azul_lado():
+def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
+    #! usar verificar_cor em vez disso?
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
-    return ((cores.azul_unificado(*esq) ^ cores.azul_unificado(*dir)),
+    print(f"esq: {esq}, dir: {dir}")
+    return ((not cores.area_livre_unificado(*esq) or not cores.area_livre_unificado(*dir)),
             esq, dir)
+
 
 def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
     def f():
@@ -163,11 +162,6 @@ def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
         return (func_cor(*esq) or func_cor(*dir), esq, dir)
     return f
 
-def _ver_passageiro_perto():
-    #print("_ver_passageiro_perto")
-    dist_esq, dist_dir = ler_ultrassons()
-    return ((dist_esq < DIST_PASSAGEIRO_RUA or dist_dir < DIST_PASSAGEIRO_RUA),
-            dist_esq, dist_dir)
 
 def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo(hub)
@@ -205,11 +199,11 @@ def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
             print(res)
             assert False
 
-def alinha_limite(max_tentativas=3):
+def alinha_limite(max_tentativas=3, giro_max=GIRO_MAX_ALINHAR):
     for i in range(max_tentativas):
         rodas.reset()
-        dar_re_meio_bloco()
-        alinhou = alinha_parede(vel=80, vel_ang=30, giro_max=70)
+        dar_re_meio_quarteirao()
+        alinhou = alinha_parede(VEL_ALINHAR, VEL_ANG_ALINHAR, giro_max=giro_max)
         ang  = rodas.angle()
         dist = rodas.distance()
         if alinhou: return
@@ -220,76 +214,40 @@ def alinha_limite(max_tentativas=3):
                 rodas.turn(ang)
     return
 
+def cor_final(retorno):
+    achou, extra = retorno
+
+    if achou: return extra
+    else:     return cores.todas(sensor_cor_esq, sensor_cor_dir)
+
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
-    achou, extra = andar_ate_idx(ver_nao_pista)
-    if achou:
-        return extra
-    else:
-        return cores.todas(sensor_cor_esq, sensor_cor_dir)
+    return cor_final(andar_ate_idx(ver_nao_pista))
 
-def _achar_azul() -> bool:
-    esq, dir = achar_limite(); alinha_limite() # anda reto até achar o limite
+def achar_diferente() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
+    return cor_final(andar_ate_idx(ver_nao_verde))
 
-    if cores.beco_unificado(*esq) or cores.beco_unificado(*dir): #! beco é menor que os outros blocos
-        print(f"_achar_azul: beco")
-
-        dar_re_meio_bloco()
-        dar_re(TAM_BLOCO_BECO) 
-
-        choice((virar_direita, virar_esquerda))() # divertido
-
-        #! lidar com os casos de cada visto (andar_ate[...])
-        esq, dir = achar_limite(); alinha_limite() # anda reto até achar o limite
-        print(f"_achar_azul: beco indo azul") 
-
-        if cores.parede_unificado(*esq) or cores.parede_unificado(*dir): dar_meia_volta()
-
-        #! lidar com os casos de cada visto (andar_ate[...])
-        esq, dir = achar_limite() # anda reto até achar o limite #! alinha?
-        print(f"_achar_azul: beco indo azul certeza")
-
-        return cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.azul_unificado)
-    elif cores.parede_unificado(*esq) or cores.parede_unificado(*dir):
-        print(f"_achar_azul: parede")
-
-        dar_re_meio_bloco()
-        choice((virar_direita, virar_esquerda))() # divertido      
-
-        return False
-    else: #azul
-        print("_achar_azul: vi azul")
-        #! deixar mais andar_ate(ver_azul, ver_nao_branco) switch()
-        esq, dir = achar_limite() # anda reto até achar o limite #! alinha?
-
-        if cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.azul_unificado):
-            print("_achar_azul: azul mesmo")
-            dar_re(TAM_BLOCO_BECO*3//8)
-            return True
-        else:
-            print("_achar_azul: não azul")
-            dar_re_meio_bloco()
-            choice((virar_direita, virar_esquerda))() #!
-            return False
-
-def alinha_parede(vel, vel_ang, giro_max=45) -> bool:
-    alinhado_parede = lambda esq, dir: not cores.pista_unificado(*esq) and not cores.pista_unificado(*dir)
-    alinhado_pista  = lambda esq, dir: cores.pista_unificado(*esq) and cores.pista_unificado(*dir)
+def alinha_parede(vel, vel_ang, giro_max=45,
+                  _cor_unificado=cores.area_livre_unificado,
+                  _ver_nao_x=ver_nao_verde
+                  ) -> bool:
+    alinhado_parede = lambda esq, dir: not _cor_unificado(*esq) and not _cor_unificado(*dir)
+    alinhado_pista  = lambda esq, dir: _cor_unificado(*esq) and _cor_unificado(*dir)
 
     with mudar_velocidade(rodas, vel, vel_ang):
-        parou, extra = andar_ate_idx(ver_nao_pista, dist_max=TAM_BLOCO//2)
+        parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO//2)
         if not parou:
             (dist,) = extra
-            print(f"alinha_parede: reto branco {dist}")
+            print(f"alinha_parede: reto pista {dist}")
             return False # viu só branco, não sabemos se tá alinhado
     
-        (dir, esq) = extra
+        (esq, dir) = extra
         if  alinhado_parede(esq, dir):
             print("alinha_parede: reto não pista")
             return True
-        elif not cores.pista_unificado(*dir):
+        elif not _cor_unificado(*dir):
             print("alinha_parede: torto pra direita")
             GIRO = -giro_max
-        elif not cores.pista_unificado(*esq):
+        elif not _cor_unificado(*esq):
             print("alinha_parede: torto pra esquerda")
             GIRO = giro_max
 
@@ -307,7 +265,8 @@ def alinha_parede(vel, vel_ang, giro_max=45) -> bool:
                 return False #provv alinhado, talvez tentar de novo
         return False # girou tudo, não sabemos se tá alinhado
 
-def alinhar(max_tentativas=4, virar=True, vel=80, vel_ang=20, giro_max=70) -> None:
+def alinhar(max_tentativas=4, virar=True,
+                              vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_max=70) -> None:
     for _ in range(max_tentativas): #! esqueci mas tem alguma coisa
         rodas.reset()
         alinhou = alinha_parede(vel, vel_ang, giro_max=giro_max)
@@ -325,83 +284,6 @@ def alinhar(max_tentativas=4, virar=True, vel=80, vel_ang=20, giro_max=70) -> No
             continue
     return
         
-
-def _pegar_passageiro() -> bool:
-    global orientacao_estimada
-
-    print("_pegar_passageiro:")
-    with mudar_velocidade(rodas, 50):
-        res, info = andar_ate_idx(_ver_passageiro_perto,
-                                  verificar_cor(cores.beco_unificado),
-                                  verificar_cor(cores.parede_unificado),
-                                  dist_max=TAM_BLOCO*4)
-        if res == 1:
-            (dist_esq, dist_dir) = info
-            if dist_esq < dist_dir:
-                dist = dist_esq
-                virar, desvirar = virar_esquerda, virar_direita
-            else:
-                dist = dist_dir
-                virar, desvirar = virar_direita, virar_esquerda
-
-            blt.abrir_garra(hub)
-            with mudar_velocidade(rodas, *vels_padrao):
-                dar_re(DIST_EIXO_SENS_DIST-20) #! desmagificar
-                virar()
-                rodas.straight(dist)
-                blt.fechar_garra(hub)
-            cor_cano = blt.ver_cor_passageiro(hub)
-            print(f"_pegar_passageiro: cor_cano {cores.cor(cor_cano)}")
-
-            if cor_cano == cores.cor.BRANCO or cor_cano == cores.cor.NENHUMA: #!
-                with mudar_velocidade(rodas, *vels_padrao):
-                    blt.abrir_garra(hub)
-                    rodas.straight(-dist)
-                    desvirar()
-                return False
-            return True
-        elif res == 2:
-            (cor_esq, cor_dir) = info
-            print(f"_pegar_passageiro: vermelho {cor_esq=}, {cor_dir=}")
-            with mudar_velocidade(rodas, *vels_padrao):
-                dar_re_meio_bloco()
-                dar_meia_volta()
-
-            return False # é pra ter chegado no vermelho
-        elif res == 3:
-            (cor_esq, cor_dir) = info
-            print(f"_pegar_passageiro: nao_pista {cor_esq=}, {cor_dir=}")
-            with mudar_velocidade(rodas, *vels_padrao):
-                dar_re_meio_bloco()
-                dar_meia_volta()
-
-            return False #! falhar mais alto
-        else:
-            print(f"_pegar_passageiro: andou muito {rodas.distance()}")
-            with mudar_velocidade(rodas, *vels_padrao):
-                dar_re_meio_bloco()
-                dar_meia_volta()
-
-            return False # chegou na distância máxima
-
-def _pegar_primeiro_passageiro() -> Color:
-    global orientacao_estimada
-    print("_pegar_primeiro_passageiro:")
-    #! a cor é pra ser azul
-    virar_direita()
-    deu, _ = andar_ate_bool(verificar_cor(cores.beco_unificado),
-                           fracasso=verificar_cor(cores.parede_unificado))
-    while not deu:
-        deu, _ = andar_ate_bool(verificar_cor(cores.beco_unificado),
-                                fracasso=verificar_cor(cores.parede_unificado))
-    dar_re_meio_bloco()
-    dar_meia_volta()
-
-    pegou = _pegar_passageiro()
-    while not pegou:
-        pegou = _pegar_passageiro()
-    
-    return blt.ver_cor_passageiro(hub)
 
 def seguir_caminho(pos, obj): #! lidar com outras coisas
     def interpretar_movimento(mov):
@@ -467,56 +349,50 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
             wait(100)
             return mapa_hsv
 
-def _loop_principal_antigo(hub):
-    while True:
-        bipe_cabeca(hub)
+def achar_vermelho(hub) -> bool:
+    esq, dir = achar_diferente(); alinha_limite()
+    if cores.beco_unificado(*esq) and cores.beco_unificado(*dir):
+        dar_re_meio_quarteirao()
+        return True
+    elif cores.beco_unificado(*esq):
+        alinha_limite()
+    elif cores.beco_unificado(*dir):
+        alinha_limite()
+    else:
+        choice((virar_direita, virar_esquerda))()
+    return False
 
-        #! antes de qualquer coisa, era bom ver se na sua frente tem obstáculo
-        #! sobre isso ^ ainda, tem que tomar cuidado pra não confundir eles com os passageiros
-        achou_azul = False
-        alinhar()
-        while not achou_azul:
-            achou_azul = _achar_azul()
-        print(f"{orientacao_estimada=}") #assert ori == "L"
-        orientacao_estimada = "L"
-        cor = _pegar_primeiro_passageiro()
+def achar_azul(hub) -> bool:
+    #! choice((virar_direita, virar_esquerda))()
+    ((virar_esquerda))() #!
+    esq, dir = achar_diferente(); alinha_limite()
+    if cores.azul_unificado(*esq) and cores.azul_unificado(*dir):
+        dar_re_meio_quarteirao()
+        return True
+        #return cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.beco_unificado)
+    elif cores.azul_unificado(*esq):
+        alinha_limite()
+    elif cores.azul_unificado(*dir):
+        alinha_limite()
+    else:
+        dar_re_meio_quarteirao()
+        dar_meia_volta()
+    return False
 
-        achar_limite(); alinha_limite() #! lidar com os casos de cada visto (andar_ate[...])
-
-        #! comprimir esses ifs com com posicao_desembarque_adulto.get()
-        #! verificar tamanho do passageiro e funcao p verificar se desembarque disponivel
-        if   cor == cores.cor.VERDE:    fim = posicao_desembarque_adulto['VERDE']
-        elif cor == cores.cor.VERMELHO: fim = posicao_desembarque_adulto['VERMELHO']
-        elif cor == cores.cor.AZUL:     fim = posicao_desembarque_adulto['AZUL']
-        elif cor == cores.cor.MARROM:   fim = posicao_desembarque_adulto['MARROM'] #! fazer acontecer
-        else: #! marrom
-            fim = posicao_desembarque_adulto['MARROM']
-            print(f"{cores.cor(cor)}")
-            assert False
-
-        dar_re(TAM_BLOCO//3) #! desmagificar
-        choice((virar_esquerda, virar_direita))()
-        achar_limite(); alinha_limite() #! lidar com os casos de cada visto (andar_ate[...])
-        #! aqui é pra ser vermelho
-        dar_re_meio_bloco()
-
-        if   orientacao_estimada == "N": pos = (0,5)
-        elif orientacao_estimada == "S": pos = (4,5)
-        else:
-            print(f"{orientacao_estimada=}")
-            assert False
-
-        seguir_caminho(pos, fim)
-
-        rodas.straight(TAM_BLOCO//2)
-        blt.abrir_garra(hub)
-        dar_re(TAM_BLOCO//2)
-
-        seguir_caminho(fim, pos)
 
 def posicionamento_inicial(hub):
-    achar_vermelho(hub)
-    achar_azul(hub)
+    #! alinhar()
+    achou_vermelho = False
+    while not achou_vermelho:
+        achou_vermelho = achar_vermelho(hub)
+    bipe_separador(hub)
+    print("achou vermelho")
+
+    achou_azul = False
+    while not achou_azul:
+        achou_azul = achar_azul(hub)
+    bipe_separador(hub)
+    print("achou azul")
     reseta_xy(hub) # vai para o 0,0 do verde
     return descobrir_cor_caçambas(hub)
 
