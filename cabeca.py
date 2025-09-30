@@ -17,7 +17,7 @@ import bluetooth as blt
 
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
-GIRO_MAX_ALINHAR = 70
+GIRO_MAX_ALINHAR = 70 #!80
 
 TAM_QUARTEIRAO = 300
 TAM_BLOCO = TAM_QUARTEIRAO//2
@@ -247,7 +247,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
         return False # girou tudo, não sabemos se tá alinhado
 
 def alinhar(max_tentativas=4, virar=True,
-                              vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_max=70) -> None:
+                              vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_max=GIRO_MAX_ALINHAR) -> None:
     for _ in range(max_tentativas): #! esqueci mas tem alguma coisa
         rodas.reset()
         alinhou = alinha_parede(vel, vel_ang, giro_max=giro_max)
@@ -265,12 +265,12 @@ def alinhar(max_tentativas=4, virar=True,
             continue
     return
 
-def alinha_limite(max_tentativas=3, giro_max=GIRO_MAX_ALINHAR):
-    for i in range(max_tentativas):
+def alinha_limite(max_tentativas=3, vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_max=70) -> None:
+    for _ in range(max_tentativas):
         rodas.reset()
         dar_re_meio_quarteirao()
 
-        alinhou = alinha_parede(VEL_ALINHAR, VEL_ANG_ALINHAR, giro_max=giro_max)
+        alinhou = alinha_parede(vel, vel_ang, giro_max=giro_max)
         ang  = rodas.angle()
         dist = rodas.distance()
         if alinhou: return
@@ -359,8 +359,7 @@ def achar_vermelho(hub) -> bool:
     return False
 
 def achar_azul(hub) -> bool:
-    #! choice((virar_direita, virar_esquerda))()
-    ((virar_esquerda))() #!
+    choice((virar_direita, virar_esquerda))()
     esq, dir = achar_diferente(); alinhar()
     if cores.azul_unificado(*esq) and cores.azul_unificado(*dir):
         dar_re_meio_quarteirao()
