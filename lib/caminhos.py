@@ -1,4 +1,4 @@
-from polyfill    import Enum, heappop, heappush
+from lib.polyfill import Enum, heappop, heappush
 
 tipo_celula = Enum("tipo_celula", ["RUA",
                                    "CRUZ",

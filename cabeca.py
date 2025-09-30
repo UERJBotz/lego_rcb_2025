@@ -7,7 +7,7 @@ from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
 from lib.bipes     import bipe_calibracao, bipe_cabeca, musica_vitoria, musica_derrota
-from lib.caminhos  import achar_movimentos, tipo_movimento, posicao_desembarque_adulto
+from lib.caminhos  import achar_movimentos, tipo_movimento
 
 from urandom import choice
 
@@ -39,17 +39,21 @@ def setup():
     global botao_calibrar, orientacao_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
     
-    orientacao_estimada = ""
-    hub = PrimeHub(broadcast_channel=blt.TX_CABECA, observe_channels=[blt.TX_BRACO])
+    hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
+                   observe_channels=[blt.TX_BRACO,
+                                     blt.TX_RABO])
     print(hub.system.name())
     while hub.system.name() != "spike1":
         hub.speaker.beep(frequency=1024)
         wait(200)
     else:
         hub.light.blink(Color.RED, [100,50,200,100])
+    blt.init(hub)
 
     hub.display.orientation(Side.BOTTOM)
     hub.system.set_stop_button((Button.CENTER, Button.BLUETOOTH))
+
+    orientacao_estimada = ""
 
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
