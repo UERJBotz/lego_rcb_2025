@@ -7,7 +7,7 @@ from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
 from lib.bipes     import bipe_calibracao, bipe_cabeca, bipe_separador, musica_vitoria, musica_derrota
-from lib.caminhos  import achar_movimentos, tipo_movimento
+from lib.caminhos  import achar_movimentos, tipo_movimento, mapa, imprime_matriz, tira_obstaculo
 
 from urandom import choice
 
@@ -57,8 +57,8 @@ def setup():
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
 
-    roda_esq = Motor(Port.A, positive_direction=Direction.CLOCKWISE)
-    roda_dir = Motor(Port.B, positive_direction=Direction.COUNTERCLOCKWISE)
+    roda_esq = Motor(Port.B, positive_direction=Direction.CLOCKWISE)
+    roda_dir = Motor(Port.A, positive_direction=Direction.COUNTERCLOCKWISE)
 
     rodas = DriveBase(roda_esq, roda_dir,
                       wheel_diameter=88, axle_track=145.5) #! recalibrar
@@ -155,7 +155,6 @@ def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
     return ((not cores.area_livre_unificado(*esq) or not cores.area_livre_unificado(*dir)),
             esq, dir)
 
-
 def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
     def f():
         esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
@@ -198,7 +197,6 @@ def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
         else: 
             print(res)
             assert False
-
 
 def cor_final(retorno):
     achou, extra = retorno
