@@ -194,20 +194,6 @@ def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
             print(res)
             assert False
 
-def alinha_limite(max_tentativas=3, giro_max=GIRO_MAX_ALINHAR):
-    for i in range(max_tentativas):
-        rodas.reset()
-        dar_re_meio_quarteirao()
-        alinhou = alinha_parede(VEL_ALINHAR, VEL_ANG_ALINHAR, giro_max=giro_max)
-        ang  = rodas.angle()
-        dist = rodas.distance()
-        if alinhou: return
-        else:
-            with mudar_velocidade(rodas, 80, 30):
-                rodas.turn(-ang)
-                dar_re(dist)
-                rodas.turn(ang)
-    return
 
 def cor_final(retorno):
     achou, extra = retorno
@@ -229,7 +215,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
     alinhado_pista  = lambda esq, dir: _cor_unificado(*esq) and _cor_unificado(*dir)
 
     with mudar_velocidade(rodas, vel, vel_ang):
-        parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO//2)
+        parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO)
         if not parou:
             (dist,) = extra
             print(f"alinha_parede: reto pista {dist}")
@@ -279,6 +265,21 @@ def alinhar(max_tentativas=4, virar=True,
             continue
     return
 
+def alinha_limite(max_tentativas=3, giro_max=GIRO_MAX_ALINHAR):
+    for i in range(max_tentativas):
+        rodas.reset()
+        dar_re_meio_quarteirao()
+
+        alinhou = alinha_parede(VEL_ALINHAR, VEL_ANG_ALINHAR, giro_max=giro_max)
+        ang  = rodas.angle()
+        dist = rodas.distance()
+        if alinhou: return
+        else:
+            with mudar_velocidade(rodas, 80, 30):
+                rodas.turn(-ang)
+                dar_re(dist)
+                rodas.turn(ang)
+    return
 
 def seguir_caminho(pos, obj): #! lidar com outras coisas
     def interpretar_movimento(mov):
@@ -345,14 +346,14 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
             return mapa_hsv
 
 def achar_vermelho(hub) -> bool:
-    esq, dir = achar_diferente(); alinha_limite()
+    esq, dir = achar_diferente(); alinhar()
     if cores.beco_unificado(*esq) and cores.beco_unificado(*dir):
         dar_re_meio_quarteirao()
         return True
     elif cores.beco_unificado(*esq):
-        alinha_limite()
+        alinhar()
     elif cores.beco_unificado(*dir):
-        alinha_limite()
+        alinhar()
     else:
         choice((virar_direita, virar_esquerda))()
     return False
@@ -360,15 +361,15 @@ def achar_vermelho(hub) -> bool:
 def achar_azul(hub) -> bool:
     #! choice((virar_direita, virar_esquerda))()
     ((virar_esquerda))() #!
-    esq, dir = achar_diferente(); alinha_limite()
+    esq, dir = achar_diferente(); alinhar()
     if cores.azul_unificado(*esq) and cores.azul_unificado(*dir):
         dar_re_meio_quarteirao()
         return True
         #return cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.beco_unificado)
     elif cores.azul_unificado(*esq):
-        alinha_limite()
+        alinhar()
     elif cores.azul_unificado(*dir):
-        alinha_limite()
+        alinhar()
     else:
         dar_re_meio_quarteirao()
         dar_meia_volta()
