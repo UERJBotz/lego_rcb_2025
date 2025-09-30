@@ -1,4 +1,7 @@
-PYBRICKS = .venv/bin/python3 -m pybricksdev
+MAKEFLAGS += --jobs=2
+
+PYBRICKS = .venv/bin/pybricksdev
+AMPY     = .venv/bin/ampy
 
 _BRACO  = .__main_braco__.py
 _CABECA = .__main_cabeca__.py
@@ -8,7 +11,8 @@ NOME_BRACO  = "spike0"
 
 
 .PHONY:
-all: cabeca_imediato braco_imediato clean
+all:: cabeca braco
+all:: clean
 
 .PHONY: cabeca braco
 cabeca: $(_CABECA)
@@ -31,6 +35,20 @@ $(_CABECA): build/pre_cabeca.py main.py
 #! colocar os outros módulos como dependência
 $(_BRACO): build/pre_braco.py main.py
 	cat build/pre_braco.py main.py > $@
+
+#! ver algum jeito de não fazer upload sem precisar
+##! if grep -q $< <<<"$(AMPY) ls"; then echo "já tá" fi
+##! if ! "$(AMPY) get $<"; then echo "não tá" fi
+rabo:: firmware/rabo/boot.py
+	$(AMPY) --port /dev/ttyACM0 put $<
+rabo:: firmware/rabo/main.py
+	$(AMPY) --port /dev/ttyACM0 put $<
+rabo:: firmware/rabo/bleradio.py
+	$(AMPY) --port /dev/ttyACM0 put $<
+rabo:: lib/polyfill.py
+	$(AMPY) --port /dev/ttyACM0 put $< $<
+rabo:: bluetooth.py
+	$(AMPY) --port /dev/ttyACM0 put $< blt.py
 
 
 .PHONY:
