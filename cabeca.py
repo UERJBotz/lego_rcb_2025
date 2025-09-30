@@ -7,7 +7,7 @@ from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
 from lib.bipes     import bipe_calibracao, bipe_cabeca, musica_vitoria, musica_derrota
-from lib.caminhos  import achar_movimentos, tipo_movimento, posicao_desembarque_adulto
+from lib.caminhos  import achar_movimentos, tipo_movimento, mapa, imprime_matriz, tira_obstaculo
 
 from urandom import choice
 
@@ -56,8 +56,8 @@ def setup():
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
 
-    roda_esq = Motor(Port.A, positive_direction=Direction.CLOCKWISE)
-    roda_dir = Motor(Port.B, positive_direction=Direction.COUNTERCLOCKWISE)
+    roda_esq = Motor(Port.B, positive_direction=Direction.CLOCKWISE)
+    roda_dir = Motor(Port.A, positive_direction=Direction.COUNTERCLOCKWISE)
 
     rodas = DriveBase(roda_esq, roda_dir,
                       wheel_diameter=88, axle_track=145.5) #! ver depois se recalibrar
@@ -81,7 +81,7 @@ class mudar_velocidade():
         self.rodas = rodas
         self.vel   = vel
         self.vel_ang = vel_ang
- 
+
     def __enter__(self): 
         self.conf_anterior = self.rodas.settings()
         [_, *conf_resto]   = self.conf_anterior
@@ -530,3 +530,4 @@ def main(hub):
         dar_re(TAM_BLOCO//2)
 
         seguir_caminho(fim, pos)
+
