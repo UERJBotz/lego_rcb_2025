@@ -167,7 +167,6 @@ def dar_re_meio_quarteirao():
     dar_re(TAM_BLOCO - DIST_EIXO_SENSOR)
     print("dar_re_meio_quarteirão: ré")
 
-#! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
 
 def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     #! usar verificar_cor em vez disso?
@@ -193,7 +192,7 @@ def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo(hub)
     return cor != cores.NENHUMA
 
-def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
+def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[int, tuple[Any]]: # type: ignore
     rodas.reset()
     rodas.straight(dist_max, wait=False)
     while not rodas.done():
@@ -205,9 +204,15 @@ def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[bool, t
                 return i+1, retorno
     return 0, (rodas.distance(),)
 
+def andar_ate(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[Callable, tuple[Any]]: # type: ignore
+    idx, extra = andar_ate_idx(*conds_parada, dist_max)
+    return conds_parada[idx], extra
+    
 nunca_parar   = (lambda: (False, False))
 ou_manter_res = (lambda res, ext: (res, ext))
 
+#! reimplementar usando andar_ate
+#! talvez mudar pra retornar só bool, dist (pegar as informações extras na própria função)
 def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
                             ou=ou_manter_res, dist_max=PISTA_TODA):
     succ, neut, frac = 1, 2, 3
