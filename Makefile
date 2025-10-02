@@ -1,5 +1,6 @@
 MAKEFLAGS += --jobs=2
 
+PYTHON   = .venv/bin/python
 PYBRICKS = .venv/bin/pybricksdev
 AMPY     = .venv/bin/ampy
 
@@ -22,10 +23,10 @@ braco:  $(_BRACO)
 
 
 .PHONY: cabeca_imediato braco_imediato
-cabeca_imediato: $(_CABECA)
-	$(PYBRICKS) run ble --name $(NOME_CABECA) $< --no-wait
-braco_imediato:  $(_BRACO)
-	$(PYBRICKS) run ble --name $(NOME_BRACO) $< --no-wait
+cabeca_imediato:
+	$(PYTHON) build/run.py $(NOME_CABECA)
+braco_imediato:
+	$(PYTHON) build/run.py $(NOME_BRACO)
 
 
 #! colocar os outros módulos como dependência
