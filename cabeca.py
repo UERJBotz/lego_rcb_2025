@@ -6,13 +6,14 @@ from pybricks.parameters import Port, Stop, Side, Direction, Button, Color
 from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
-from lib.bipes     import bipe_calibracao, bipe_cabeca, bipe_separador, musica_vitoria, musica_derrota
-from lib.caminhos  import achar_movimentos, tipo_movimento, mapa, imprime_matriz, tira_obstaculo
+from lib.bipes    import bipe_calibracao, bipe_cabeca, bipe_separador, musica_vitoria, musica_derrota
+
+from lib.caminhos import achar_movimentos, tipo_movimento, tira_obstaculo
 
 from urandom import choice
 
-import cores
 import gui
+import cores
 import bluetooth as blt
 
 VEL_ALINHAR = 80
@@ -42,8 +43,10 @@ def setup():
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
                    observe_channels=[blt.TX_BRACO,
                                      blt.TX_RABO])
-    print(hub.system.name())
-    while hub.system.name() != "spike1":
+    nome, bat = hub.system.name(), hub.battery.voltage()
+
+    print(f"{nome}: {bat}mV")
+    while nome != "spike1":
         hub.speaker.beep(frequency=1024); wait(200)
     else:
         hub.light.blink(Color.RED, [100,50,200,100])
@@ -434,3 +437,14 @@ def main(hub):
     cor, xy = procura_inicial(hub, 00, caçambas)
     coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
     procura(hub)
+
+if __name__ == "__main__":
+    from lib.bipes import bipe_inicio, bipe_final, bipe_falha
+    hub = setup()
+    try:
+        bipe_inicio(hub)
+        main(hub)
+        bipe_final(hub)
+    except Exception as e:
+        bipe_falha(hub)
+        raise e

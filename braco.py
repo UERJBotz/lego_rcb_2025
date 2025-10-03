@@ -15,8 +15,10 @@ def setup():
 
     hub = PrimeHub(broadcast_channel=blt.TX_BRACO,
                    observe_channels=[blt.TX_CABECA])
-    print(hub.system.name())
-    while hub.system.name() != "spike0":
+    nome, bat = hub.system.name(), hub.battery.voltage()
+
+    print(f"{nome}: {bat}mV")
+    while nome != "spike0":
         hub.speaker.beep(frequency=1024)
         wait(200)
     else:
@@ -86,4 +88,17 @@ def main(hub):
             print("pediu hsv")
             cor = sensor_cor_frente.hsv()
             hub.ble.broadcast((blt.comando_bt.hsv_cubo, cores.Color2tuple(cor)))
+
+if __name__ == "__main__":
+    from lib.bipes import bipe_inicio, bipe_final, bipe_falha
+    hub = setup()
+    while True:
+      try:
+          bipe_inicio(hub)
+          main(hub)
+          bipe_final(hub)
+      except Exception as e:
+          bipe_falha(hub)
+          print(f"{e}")
+          continue
 

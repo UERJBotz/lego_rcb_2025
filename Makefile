@@ -4,42 +4,51 @@ PYTHON   = .venv/bin/python
 PYBRICKS = .venv/bin/pybricksdev
 AMPY     = .venv/bin/ampy
 
-_BRACO  = .__main_braco__.py
-_CABECA = .__main_cabeca__.py
-
 NOME_CABECA = "spike1"
 NOME_BRACO  = "spike0"
 
 
-.PHONY:
-all:: cabeca braco
-all:: clean
+.PHONY: all cabeca braco
+all: cabeca braco
 
-.PHONY: cabeca braco
-cabeca: $(_CABECA)
+#! colocar os outros módulos como dependência
+cabeca: cabeca.py
 	$(PYBRICKS) run ble --name $(NOME_CABECA) $<
-braco:  $(_BRACO)
+braco:  braco.py
 	$(PYBRICKS) run ble --name $(NOME_BRACO) $<
 
 
-.PHONY: cabeca_imediato braco_imediato
+.PHONY: imediato cabeca_imediato braco_imediato
+imediato: cabeca braco
+
 cabeca_imediato:
 	$(PYTHON) build/run.py $(NOME_CABECA)
 braco_imediato:
 	$(PYTHON) build/run.py $(NOME_BRACO)
 
 
-#! colocar os outros módulos como dependência
-$(_CABECA): build/pre_cabeca.py main.py
-	cat build/pre_cabeca.py main.py > $@
+.PHONY: teste cabeca_teste braco_teste
+teste: teste_cabeca teste_braco
 
-#! colocar os outros módulos como dependência
-$(_BRACO): build/pre_braco.py main.py
-	cat build/pre_braco.py main.py > $@
+TESTE_BRACO  = .__teste_braco__.py
+TESTE_CABECA = .__teste_cabeca__.py
 
+teste_cabeca: $(TESTE_CABECA)
+	$(PYBRICKS) run ble --name $(NOME_CABECA) $<
+teste_braco:  $(TESTE_BRACO)
+	$(PYBRICKS) run ble --name $(NOME_BRACO) $<
+
+$(TESTE_CABECA): cabeca.py
+	echo "TESTE = True" > $@; cat $< >> $@
+$(TESTE_BRACO): braco.py
+	echo "TESTE = True" > $@; cat $< >> $@
+
+
+.PHONY: rabo
 #! ver algum jeito de não fazer upload sem precisar
-##! if grep -q $< <<<"$(AMPY) ls"; then echo "já tá" fi
-##! if ! "$(AMPY) get $<"; then echo "não tá" fi
+# #! if grep -q $< <<<"$(AMPY) ls"; then echo "já tá" fi
+# #! if ! "$(AMPY) get $<"; then echo "não tá" fi
+#! colocar arduino-cli e fazer upload do arduino
 rabo:: firmware/rabo/boot.py
 	$(AMPY) --port /dev/ttyACM0 put $<
 rabo:: firmware/rabo/main.py
@@ -52,8 +61,8 @@ rabo:: bluetooth.py
 	$(AMPY) --port /dev/ttyACM0 put $< blt.py
 
 
-.PHONY:
+.PHONY: clean
 clean:
-	-rm $(_CABECA)
-	-rm $(_BRACO)
+	rm -f $(TESTE_CABECA)
+	rm -f $(TESTE_BRACO)
 

@@ -1,5 +1,7 @@
-__pycache__/
-*.pyc
 .venv/
 .vscode/
-__main_*.py
+__pycache__/
+*.pyc
+
+*__main_*.py
+*__teste_*.py
