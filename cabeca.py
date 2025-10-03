@@ -12,10 +12,9 @@ from lib.caminhos import achar_movimentos, tipo_movimento, tira_obstaculo
 
 from urandom import choice
 
-import gui
 import cores
+import gui
 import bluetooth as blt
-
 
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
@@ -52,7 +51,7 @@ def setup():
     global sensor_cor_esq, sensor_cor_dir, sensor_ultra_esq, sensor_ultra_dir
     global botao_calibrar, orientacao_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
-    
+
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
                    observe_channels=[blt.TX_BRACO,
                                      blt.TX_RABO],
@@ -87,11 +86,11 @@ def setup():
     vel_padrao     = rodas_conf_padrao[0]
     vel_ang_padrao = rodas_conf_padrao[2]
     vels_padrao = vel_padrao, vel_ang_padrao
-    
+
     return hub
 
 def main(hub):
-    global orientacao_estimada
+    global orientacao_estimada, posicao_estimada
     if deve_calibrar():
         mapa_hsv = menu_calibracao(hub,
                                    sensor_cor_esq,
@@ -102,6 +101,8 @@ def main(hub):
 
     blt.abaixar_garra(hub)
     caçambas = posicionamento_inicial(hub)
+    posicao_estimada = (0,0) #! deveria ser verde esq sup
+
     cor, xy = procura_inicial(hub, 00, caçambas)
     coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
     procura(hub)
@@ -322,7 +323,6 @@ def alinha_parede(vel, vel_ang, giro_max=45,
         LOG(f"alinha_parede: girou tudo, {esq}, {dir}")
         return False, extra # girou tudo, não sabemos se tá alinhado
 
-#! tem que retornar a cor
 def alinha_giro(max_tentativas=4, virar=True, #! virar=False?
                               vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR,
                               giro_max=GIRO_MAX_ALINHAR) -> None:
@@ -549,6 +549,46 @@ def soltar_cubo_na_caçamba(caçambas, cor_cubo, hub, max_cubos=2): #! suportar 
 
     raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
 
+def procura(hub):
+    global posicao_estimada
+    cel_incertas = pegar_celulas_incertas()
+    caminho_todo = []
+    cel_inicio = posicao_estimada
+
+    #! ordenar lista com o a_estrela
+
+    for cel_destino in cel_incertas:
+        print("tentando de", cel_inicio, "até :", cel_destino)
+        caminho = seguir_caminho(cel_inicio, cel_destino) #! problema retornar caminho (retorna indice movimento)
+        if not caminho:
+            print("Nao")
+            continue
+
+        caminho_todo += caminho
+        cel_inicio = cel_destino
+
+        cor = blt.ver_cor_cubo(hub)
+        if cor is None: # não tem cubo
+            print("cel livre")
+            tira_obstaculo(cel_destino[0], cel_destino[1])
+            continue
+
+        if cor not in [cores.cor.AZUL, cores.cor.VERDE, cores.cor.VERMELHO]: #!
+            print("cubo")
+            if cor == cores.cor.BRANCO: bipes.bipe_cabeca(hub) #! fazer fora?
+            coloca_obstaculo(cel_destino[0], cel_destino[1])
+            dar_re(TAM_BLOCO) #! posição estimada fica errada aqui
+            caminho_todo.pop(-1)
+            cel_inicio = cel_destino
+            continue
+
+        print("nice")
+        fechar_garra(hub)
+        tira_obstaculo(cel_destino[0], cel_destino[1])
+        posicao_estimada = cel_destino
+        return cor, caminho_todo
+
+    raise SucessoOuCatástrofe()
 
 def cores_caçambas(caçambas):
     """

@@ -45,9 +45,9 @@ bipe_calibracao = lambda hub: hub.speaker.beep(frequency=300, duration=100)
 bipe_separador  = lambda hub: hub.speaker.beep(frequency=600, duration=200)
 bipe_cabeca     = lambda hub: hub.speaker.beep(frequency=600, duration=100)
 
-bipe_falha      = lambda hub: (hub.speaker.beep(frequency=1200, duration=1000), 
+bipe_falha      = lambda hub: (hub.speaker.beep(frequency=800, duration=500), 
                                wait(200),
-                               hub.speaker.beep(frequency=1200, duration=1000))
+                               hub.speaker.beep(frequency=800, duration=500))
 
 musica_vitoria = lambda hub: hub.speaker.play_notes(notas_vitoria, tempo=220)
 musica_derrota = lambda hub: hub.speaker.play_notes(notas_derrota) #! ajustar tempo, etc
