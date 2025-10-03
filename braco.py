@@ -25,12 +25,17 @@ def setup():
 
     motor_garra       = Motor(Port.B, Direction.COUNTERCLOCKWISE)
     motor_vertical    = Motor(Port.A, Direction.COUNTERCLOCKWISE)
+
     sensor_cor_frente = ColorSensor(Port.D)
 
     garra_fechada = False
     garra_levantada = False
 
     hub.system.set_stop_button((Button.CENTER,))
+
+    from pybricks.pupdevices import DCMotor
+    arduino5V = DCMotor(Port.F).dc(100)
+
     return hub
 
 def main(hub):
