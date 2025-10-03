@@ -7,7 +7,7 @@ from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
 from lib.bipes     import bipe_calibracao, bipe_cabeca, bipe_separador, musica_vitoria, musica_derrota
-from lib.caminhos  import achar_movimentos, tipo_movimento, mapa, imprime_matriz, tira_obstaculo
+from lib.caminhos  import *
 
 from urandom import choice
 
@@ -36,9 +36,9 @@ DIST_EIXO_SENSOR = 45
 def setup():
     global hub, rodas
     global sensor_cor_esq, sensor_cor_dir, sensor_ultra_esq, sensor_ultra_dir
-    global botao_calibrar, orientacao_estimada
+    global botao_calibrar, orientacao_estimada, posicao_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
-    
+
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
                    observe_channels=[blt.TX_BRACO,
                                      blt.TX_RABO])
@@ -52,7 +52,8 @@ def setup():
     hub.display.orientation(Side.BOTTOM)
     hub.system.set_stop_button((Button.CENTER, Button.BLUETOOTH))
 
-    orientacao_estimada = ""
+    orientacao_estimada = "L" #! assumindo virado para o leste
+    posicao_estimada = [0, 0] #! lado verde esquerdo (parte inferior)
 
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
@@ -310,6 +311,8 @@ def seguir_caminho(pos, obj): #! lidar com outras coisas
             yield rodas.distance()
 
     movs, ori_final = achar_movimentos(pos, obj, orientacao_estimada)
+    if not movs:
+        return None
     #print(*(tipo_movimento(mov) for mov in movs))
 
     for _ in interpretar_caminho(movs):
@@ -318,6 +321,8 @@ def seguir_caminho(pos, obj): #! lidar com outras coisas
     while orientacao_estimada != ori_final:
         print(f"{orientacao_estimada=}, {ori_final=}")
         virar_direita()
+
+    return movs
 
 def menu_calibracao(hub, sensor_esq, sensor_dir,
                                      botao_parar=Button.BLUETOOTH,
@@ -416,6 +421,7 @@ def procura_inicial(hub, xy, caçambas): #! considerar inimigo
         return procura_inicial(hub, xy, caçambas)
 
 def main(hub):
+    '''
     global orientacao_estimada
     crono = StopWatch()
     while crono.time() < 100: #! ativar calibração quando for usar
@@ -432,5 +438,46 @@ def main(hub):
     
     caçambas = posicionamento_inicial(hub)
     cor, xy = procura_inicial(hub, 00, caçambas)
-    coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
+    coloca_cubo_na_caçamba(hub, cor, xy, caçambas)'''
     procura(hub)
+
+def procura(hub):
+    global posicao_estimada
+    cel_incertas = pegar_celulas_incertas()
+    caminho_todo = []
+    cel_inicio = posicao_estimada
+
+    #! ordenar lista com o a_estrela
+
+    for cel_destino in cel_incertas:
+        print("tentando de", cel_inicio, "até :", cel_destino)
+        caminho = seguir_caminho(cel_inicio, cel_destino) #! problema retornar caminho (retorna indice movimento)
+        if not caminho:
+            print("Nao")
+            continue
+
+        caminho_todo += caminho
+        cel_inicio = cel_destino
+
+        cor = blt.ver_cor_cubo(hub)
+        if cor is None: # não tem cubo
+            print("cel livre")
+            tira_obstaculo(cel_destino[0], cel_destino[1])
+            continue
+
+        if cor not in [cores.cor.AZUL, cores.cor.VERDE, cores.cor.VERMELHO]: #!
+            print("cubo")
+            if cor == cores.cor.BRANCO: bipes.bipe_cabeca(hub) #! fazer fora?
+            coloca_obstaculo(cel_destino[0], cel_destino[1])
+            dar_re(TAM_BLOCO) #! posição estimada fica errada aqui
+            caminho_todo.pop(-1)
+            cel_inicio = cel_destino
+            continue
+
+        print("nice")
+        fechar_garra(hub)
+        tira_obstaculo(cel_destino[0], cel_destino[1])
+        posicao_estimada = cel_destino
+        return cor, caminho_todo
+
+    raise SucessoOuCatástrofe()
