@@ -303,11 +303,22 @@ def movimento_relativo(cam_rel, orientacao_ini):
 
     return movimentos, posicao_parede(idx_orientacao)
 
+def pegar_celulas_incertas():
+    incertas = []
+    for i in range(len(mapa)):
+        for j in range(len(mapa[i])):
+            if mapa[i][j].estado == estado_celula.INCERTO:
+                x, y = j, i
+                incertas.append((x, y))
+    return incertas
 
 def achar_movimentos(pos_ini, pos_fim, orientacao):
     pos_ini = pos_ini[1], pos_ini[0]
     pos_fim = pos_fim[1], pos_fim[0]
     caminho = a_estrela(mapa, pos_ini, pos_fim)
+    if not caminho:
+        return None, orientacao
+
     print("achar_movimentos:", *caminho, sep=" -> ")
     caminho_rel = caminho_relativo(caminho)
     print(f"achar_movimentos: {caminho_rel=}")
