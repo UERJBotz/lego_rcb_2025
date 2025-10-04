@@ -9,6 +9,14 @@ import bluetooth as blt
 import cores
 import garra
 
+def LOG(*args, print=print, **kwargs):
+    print("braço", *args, **kwargs)
+
+def ERRO(hub, *args):
+    from lib.bipes import bipe_falha
+    bipe_falha(hub);
+    LOG("ERRO:", args)
+
 def setup():
     global hub, motor_garra, motor_vertical, sensor_cor_frente, ultra_dir, ultra_esq
     global garra_fechada, garra_levantada
@@ -17,7 +25,7 @@ def setup():
                    observe_channels=[blt.TX_CABECA])
     nome, bat = hub.system.name(), hub.battery.voltage()
 
-    print(f"{nome}: {bat}mV")
+    LOG(f"{nome}: {bat}mV")
     while nome != "spike0":
         hub.speaker.beep(frequency=1024)
         wait(200)
@@ -35,70 +43,78 @@ def setup():
 
     hub.system.set_stop_button((Button.CENTER,))
 
-    from pybricks.pupdevices import DCMotor
-    arduino5V = DCMotor(Port.F).dc(100)
+    try:
+        from pybricks.pupdevices import DCMotor as DC
+        arduino5V = DC(Port.F).dc(100)
+    except OSError:
+        ERRO(hub, "ARDUINO NÃO CONECTADO!")
 
     return hub
 
 def main(hub):
     global garra_fechada, garra_levantada
 
+    cmd = None
     while True:
-        comando = hub.ble.observe(blt.TX_CABECA)
-        if comando is not None:
-            print(comando)
-            comando, *args = comando
+        antes, cmd = cmd, hub.ble.observe(blt.TX_CABECA)
+        if cmd is not None:
+            comando, *args = cmd
         else: continue
 
+        if cmd != antes:
+            LOG(f"{blt.comando_bt(comando)}{args}")
+
         if   comando == blt.comando_bt.fecha_garra:
-            print("pediu fecho")
             if not garra_fechada:
-                print("fechando")
+                LOG("fechando")
                 garra.fecha_garra(motor_garra)
                 garra_fechada = True
             hub.ble.broadcast((blt.comando_bt.fechei,))
         elif comando == blt.comando_bt.abre_garra:
-            print("pediu abre")
             if garra_fechada:
-                print("abrindo")
+                LOG("abrindo")
                 garra.abre_garra(motor_garra)
                 garra_fechada = False
             hub.ble.broadcast((blt.comando_bt.abri,))
 
         elif comando == blt.comando_bt.levanta_garra:
-            print("pediu levanto")
             if not garra_levantada:
-                print("levantando")
+                LOG("levantando")
                 garra.levanta_garra(motor_vertical)
                 garra_levantada = True
             hub.ble.broadcast((blt.comando_bt.levantei,))
         elif comando == blt.comando_bt.abaixa_garra:
-            print("pediu abaixo")
             if garra_levantada:
-                print("abaixando")
+                LOG("abaixando")
                 garra.abaixa_garra(motor_vertical)
                 garra_levantada = False
             hub.ble.broadcast((blt.comando_bt.abaixei,))
             
         elif comando == blt.comando_bt.ver_cor_cubo:
-            print("pediu cor")
-            cor = sensor_cor_frente.color() #! reclassificar co hsv se der NONE
+            #! reclassificar cor com hsv se der NONE
+            cor = sensor_cor_frente.color()
             hub.ble.broadcast((blt.comando_bt.cor_cubo, cores.Color2cor(cor)))
         elif comando == blt.comando_bt.ver_hsv_cubo:
-            print("pediu hsv")
             cor = sensor_cor_frente.hsv()
             hub.ble.broadcast((blt.comando_bt.hsv_cubo, cores.Color2tuple(cor)))
 
+def test(hub):
+    ... # testar coisas aqui sem mudar o resto do código
+
 if __name__ == "__main__":
-    from lib.bipes import bipe_inicio, bipe_final, bipe_falha
+    from lib.bipes import bipe_inicio, bipe_final
+
+    try:    TESTE == True
+    except: TESTE = False
+
     hub = setup()
     while True:
       try:
-          bipe_inicio(hub)
-          main(hub)
-          bipe_final(hub)
+        bipe_inicio(hub)
+        if TESTE: test(hub)
+        else:     main(hub)
+        bipe_final(hub)
       except Exception as e:
-          bipe_falha(hub)
-          print(f"{e}")
-          continue
+        ERRO(hub, f"{e}")
+        continue
 

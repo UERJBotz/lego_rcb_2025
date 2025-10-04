@@ -60,14 +60,15 @@ class Enum():
         self.constant_map = dict(zip(names, vals))
         self.name_str_map = dict(zip(vals, names))
 
-
+    #! dar a exceção certa aqui
     def __getattr__(self, name):
         return self.constant_map[name]
     
+    #! verificar se que nem .get é como a especificação faz
     def __getitem__(self, item):
-        return self.constant_map[item]
+        return self.constant_map.get(item)
     def __call__(self, num):
-        return self.name_str_map[num]
+        return self.name_str_map.get(num)
     
     def __iter__(self):
         yield from self.name_str_list
@@ -79,11 +80,12 @@ class Enum():
     def __len__(self):
         return len(self.constant_map)
     
-    #! faltam esses, e talvez criar um tipo interno pra os elementos
+    #! provavelmente criar um tipo interno pra os elementos
     #! retornar esse tipo novo em vez dos números direto
+    #! também é bom descobrir como usar faz o enum estilo classe
+    #! e faltam esses
     #def __repr__(self): pass
     #def __str__(self): pass
-
 
 ## testes
 

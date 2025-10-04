@@ -72,6 +72,7 @@ def setup():
     vel_padrao     = rodas_conf_padrao[0]
     vel_ang_padrao = rodas_conf_padrao[2]
     vels_padrao = vel_padrao, vel_ang_padrao
+    
 
     return hub
 
@@ -438,12 +439,20 @@ def main(hub):
     coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
     procura(hub)
 
+def test(hub):
+    ... # testar coisas aqui sem mudar o resto do código
+
 if __name__ == "__main__":
     from lib.bipes import bipe_inicio, bipe_final, bipe_falha
+
+    try:    TESTE == True
+    except: TESTE = False
+
     hub = setup()
     try:
         bipe_inicio(hub)
-        main(hub)
+        if TESTE: test(hub)
+        else:     main(hub)
         bipe_final(hub)
     except Exception as e:
         bipe_falha(hub)
