@@ -27,7 +27,7 @@ braco_imediato:
 	$(PYTHON) build/run.py $(NOME_BRACO)
 
 
-.PHONY: teste cabeca_teste braco_teste
+.PHONY: teste teste_cabeca teste_braco
 teste: teste_cabeca teste_braco
 
 TESTE_BRACO  = .__teste_braco__.py
