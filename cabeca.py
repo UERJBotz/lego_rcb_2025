@@ -24,15 +24,31 @@ TAM_QUARTEIRAO = 300
 TAM_BLOCO = TAM_QUARTEIRAO//2
 TAM_FAIXA = 20
 
+NUM_CAÇAMBAS = 5
+TAM_CAÇAMBA = 160
+TAM_CUBO = 50
+
+DIST_BORDA_CAÇAMBA = 130
+DIST_CAÇAMBA = 100
+DIST_VERDE_CAÇAMBA = 73
+
+DISTS_CAÇAMBAS = [DIST_BORDA_CAÇAMBA + TAM_CAÇAMBA*i + DIST_CAÇAMBA*i for i in range(NUM_CAÇAMBAS)]
+
 PISTA_TODA = TAM_QUARTEIRAO*6
 
 DIST_EIXO_SENSOR = 45
+
 
 
 #! checar stall: jogar exceção
 #! checar cor errada no azul
 #! tem um lugar começo do achar azul que tem que dar ré
 
+def ASSERT(cond, texto=None): #! só printar e retornar bool
+    if texto:
+        assert cond, texto
+    else:
+        assert cond
 
 def setup():
     global hub, rodas
@@ -73,8 +89,8 @@ def setup():
     vel_ang_padrao = rodas_conf_padrao[2]
     vels_padrao = vel_padrao, vel_ang_padrao
     
-
     return hub
+
 
 class mudar_velocidade():
     """
@@ -421,6 +437,92 @@ def procura_inicial(hub, xy, caçambas): #! considerar inimigo
         xy = andar_1_quarteirão_no_eixo_y(hub, xy)
         return procura_inicial(hub, xy, caçambas)
 
+class caçamba:
+    def __init__(self, pos=0):
+        self.pos = pos
+        self.num_cubos = 0
+        self.cor = cores.cor.NENHUMA
+
+caçambas = [caçamba(dist) for dist in DISTS_CAÇAMBAS]
+
+#começar da linha ate dist caçamba i - dist traseira ate sensor
+def alinhar_caçambas(orientacao_estimada): 
+    """
+    vai até amarelo
+    aí vira e vai reto até o vermelho,
+    depois vira pro lado contrário (direção das caçambas)
+    """
+    if (orientacao_estimada == "L"): dar_meia_volta()
+    if (orientacao_estimada == "S"): virar_direita()
+    if (orientacao_estimada == "N"): virar_esquerda()
+
+    andar_ate_bool(ver_nao_verde)
+    print("alinhar_caçambas: viu não verde (espera amarelo)")
+    dar_re_meio_quarteirao()
+
+    virar_esquerda()
+    andar_ate_bool(ver_nao_verde)
+    print("alinhar_caçambas: viu não verde (espera vermelho)")
+
+    dar_re(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR)
+    dar_meia_volta()
+
+#! isso tá em max_cubos=2 mas na verdade só funciona com 1
+def soltar_cubo_na_caçamba(caçambas, cor_cubo, hub, max_cubos=2): #! suportar 2 e 3 cubos rs
+    margem      = TAM_CUBO//2 if max_cubos != 1 else (TAM_CUBO*3)//2
+    espaçamento = TAM_CUBO    if max_cubos == 2 else 0
+
+    ASSERT(cor_cubo != cores.cor.NENHUMA)
+    for caçamba in caçambas:
+        if cor_cubo == caçamba.cor:
+            if caçamba.num_cubos > max_cubos: continue
+
+            rodas.straight(caçamba.pos - DIST_BORDA_CAÇAMBA +
+                           margem + caçamba.num_cubos*(TAM_CUBO+espaçamento))
+            virar_esquerda()
+
+            andar_ate_bool(ver_nao_verde)
+            rodas.straight(DIST_VERDE_CAÇAMBA)
+            blt.abrir_garra(hub)
+
+            caçamba.num_cubos += 1
+            return
+
+    raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
+
+
+def cores_caçambas(caçambas):
+    """
+    já alinhado com a primeira caçamba, vê as cores
+    """
+    #! trocar para caçamba in caçambas se a caçamba é uma referência
+    for i, _ in enumerate(caçambas):
+        rodas.straight(TAM_CAÇAMBA)
+        caçamba[i].cor = blt.ver_cor_caçamba()
+
+def orientacao_chao(sensor_cor_dir, sensor_cor_esq):
+    while True:
+        #! está direita na esquerda e esquerda na direita
+        if   (sensor_cor_dir.color() == Color.YELLOW and sensor_cor_esq.color() == Color.YELLOW):
+            return "O"
+        elif (sensor_cor_dir.color() == Color.BLUE   and sensor_cor_esq.color() == Color.BLUE):
+            return "L"
+        elif ((sensor_cor_dir.color() == Color.RED    and sensor_cor_esq.color() == Color.BLUE) or
+              (sensor_cor_dir.color() == Color.YELLOW and sensor_cor_esq.color() == Color.RED)):
+            return "S" #! não é bem isso! tá torto
+        elif ((sensor_cor_dir.color() == Color.RED  and sensor_cor_esq.color() == Color.YELLOW) or
+              (sensor_cor_dir.color() == Color.BLUE and sensor_cor_esq.color() == Color.RED)):
+            return "N" #! não é bem isso! tá torto
+        elif (sensor_cor_dir.color() == Color.RED or sensor_cor_esq.color() == Color.RED):
+            rodas.turn(30) #! testar com 60
+        else:
+            rodas.straight(TAM_QUARTEIRAO//5)
+
+def salvar_caçambas():
+    orientacao_estimada = orientacao_chao(sensor_cor_dir, sensor_cor_esq)
+    alinhar_caçambas(orientacao_estimada)
+    cores_caçambas(caçambas, sensor_cor)
+
 def main(hub):
     global orientacao_estimada
     crono = StopWatch()
@@ -441,8 +543,34 @@ def main(hub):
     coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
     procura(hub)
 
+
+def teste_ver_caçambas():
+    salvar_caçambas()
+
+def teste_colocar_caçambas():
+    global orientacao_estimada
+    cor_caçamba = [cores.cor.VERMELHO, cores.cor.AMARELO, cores.cor.AZUL, cores.cor.VERDE]
+
+    for i in range(len(cor_caçamba)):
+        caçambas[i].cor = cor_caçamba[i]
+
+    blt.resetar_garra(hub)
+    blt.fechar_garra(hub)
+    blt.levantar_garra(hub)
+    cor_cubo = blt.ver_cor_cubo(hub)
+
+    orientacao_estimada = "O"
+    alinhar_caçambas(orientacao_estimada)
+    soltar_cubo_na_caçamba(caçambas, cor_cubo, hub)
+
+    dar_re(DIST_VERDE_CAÇAMBA)
+    blt.resetar_garra(hub)
+
+
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
+    teste_colocar_caçambas()
+
 
 if __name__ == "__main__":
     from lib.bipes import bipe_inicio, bipe_final, bipe_falha
