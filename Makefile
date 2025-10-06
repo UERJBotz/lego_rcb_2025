@@ -19,7 +19,7 @@ braco:  braco.py
 
 
 .PHONY: imediato cabeca_imediato braco_imediato
-imediato: cabeca braco
+imediato: cabeca_imediato braco_imediato
 
 cabeca_imediato:
 	$(PYTHON) build/run.py $(NOME_CABECA)
@@ -27,15 +27,15 @@ braco_imediato:
 	$(PYTHON) build/run.py $(NOME_BRACO)
 
 
-.PHONY: teste teste_cabeca teste_braco
-teste: teste_cabeca teste_braco
+.PHONY: teste cabeca_teste braco_teste
+teste: cabeca_teste braco_teste
 
 TESTE_BRACO  = .__teste_braco__.py
 TESTE_CABECA = .__teste_cabeca__.py
 
-teste_cabeca: $(TESTE_CABECA)
+cabeca_teste: $(TESTE_CABECA)
 	$(PYBRICKS) run ble --name $(NOME_CABECA) $<
-teste_braco:  $(TESTE_BRACO)
+braco_teste:  $(TESTE_BRACO)
 	$(PYBRICKS) run ble --name $(NOME_BRACO) $<
 
 $(TESTE_CABECA): cabeca.py
