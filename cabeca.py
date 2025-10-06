@@ -96,14 +96,15 @@ class mudar_velocidade():
 
 def inverte_orientacao():
     global orientacao_estimada
-    if orientacao_estimada == "N": orientacao_estimada = "S"
-    if orientacao_estimada == "S": orientacao_estimada = "N"
-    if orientacao_estimada == "L": orientacao_estimada = "O"
-    if orientacao_estimada == "O": orientacao_estimada = "L"
+    if   orientacao_estimada == "N": orientacao_estimada = "S"
+    elif orientacao_estimada == "S": orientacao_estimada = "N"
+    elif orientacao_estimada == "L": orientacao_estimada = "O"
+    elif orientacao_estimada == "O": orientacao_estimada = "L"
 
 def dar_meia_volta():
     inverte_orientacao()
     rodas.turn(180)
+    print(f"dar_meia_volta: {orientacao_estimada=}")
     
 def virar_direita():
     global orientacao_estimada
@@ -139,6 +140,7 @@ def dar_re(dist):
 
 def dar_re_meio_quarteirao():
     dar_re(TAM_BLOCO - DIST_EIXO_SENSOR)
+    print("dar_re_meio_quarteirão: ré")
 
 #! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
 
