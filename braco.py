@@ -9,6 +9,8 @@ import bluetooth as blt
 import cores
 import garra
 
+#! se a gente girar a garra na mão, mesmo resetando a cabeça, o estado da garra no braço se mantém e a gente se fode.
+
 def LOG(*args, print=print, **kwargs):
     print("braço", *args, **kwargs)
 
