@@ -504,20 +504,15 @@ def cores_caçambas(caçambas):
     for i, _ in enumerate(caçambas):
         rodas.straight(TAM_CAÇAMBA)
         caçamba[i].cor = blt.ver_cor_caçamba()
+        print(f"Cor caçamba: {caçamba[i].cor}")
 
 def orientacao_chao(sensor_cor_dir, sensor_cor_esq):
     while True:
         #! está direita na esquerda e esquerda na direita
         if   (sensor_cor_dir.color() == Color.YELLOW and sensor_cor_esq.color() == Color.YELLOW):
             return "O"
-        elif (sensor_cor_dir.color() == Color.BLUE   and sensor_cor_esq.color() == Color.BLUE):
+        elif (sensor_cor_dir.color() == Color.BLUE and sensor_cor_esq.color() == Color.BLUE):
             return "L"
-        elif ((sensor_cor_dir.color() == Color.RED    and sensor_cor_esq.color() == Color.BLUE) or
-              (sensor_cor_dir.color() == Color.YELLOW and sensor_cor_esq.color() == Color.RED)):
-            return "S" #! não é bem isso! tá torto
-        elif ((sensor_cor_dir.color() == Color.RED  and sensor_cor_esq.color() == Color.YELLOW) or
-              (sensor_cor_dir.color() == Color.BLUE and sensor_cor_esq.color() == Color.RED)):
-            return "N" #! não é bem isso! tá torto
         elif (sensor_cor_dir.color() == Color.RED or sensor_cor_esq.color() == Color.RED):
             rodas.turn(30) #! testar com 60
         else:
@@ -526,6 +521,10 @@ def orientacao_chao(sensor_cor_dir, sensor_cor_esq):
 def salvar_caçambas():
     orientacao_estimada = orientacao_chao(sensor_cor_dir, sensor_cor_esq)
     alinhar_caçambas(orientacao_estimada)
+    virar_esquerda()
+    andar_ate_bool(ver_nao_verde)
+    rodas.straight(DIST_VERDE_CAÇAMBA)
+    virar_direita()
     cores_caçambas(caçambas, sensor_cor)
 
 def main(hub):
@@ -574,7 +573,10 @@ def teste_colocar_caçambas():
 
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
-    teste_colocar_caçambas()
+    while True:
+        cor = blt.ver_cor_caçamba(hub)
+        print(cor)
+        print(cores.cor2Color[cor])
 
 
 if __name__ == "__main__":
