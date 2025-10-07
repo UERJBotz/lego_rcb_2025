@@ -114,37 +114,42 @@ class mudar_velocidade():
     def __exit__(self, exc_type, exc_value, exc_traceback): 
         self.rodas.settings(*self.conf_anterior)
 
-def inverte_orientacao():
-    global orientacao_estimada
-    if   orientacao_estimada == "N": orientacao_estimada = "S"
-    elif orientacao_estimada == "S": orientacao_estimada = "N"
-    elif orientacao_estimada == "L": orientacao_estimada = "O"
-    elif orientacao_estimada == "O": orientacao_estimada = "L"
+def inverte_orientacao(ori=None):
+    if ori == None: ori = orientacao_estimada
+
+    if ori == "N": return "S"
+    if ori == "S": return "N"
+    if ori == "L": return "O"
+    if ori == "O": return "L"
+
+    return ori #!< não é pra chegar aqui
 
 def dar_meia_volta():
-    inverte_orientacao()
+    global orientacao_estimada
     rodas.turn(180)
+
+    orientacao_estimada = inverte_orientacao()
     print(f"dar_meia_volta: {orientacao_estimada=}")
     
 def virar_direita():
     global orientacao_estimada
+    rodas.turn(90)
+
     if   orientacao_estimada == "N": orientacao_estimada = "L"
     elif orientacao_estimada == "S": orientacao_estimada = "O"
     elif orientacao_estimada == "L": orientacao_estimada = "S"
     elif orientacao_estimada == "O": orientacao_estimada = "N"
-
     print(f"virar_direita: {orientacao_estimada=}")
-    rodas.turn(90)
 
 def virar_esquerda():
     global orientacao_estimada
+    rodas.turn(-90)
+
     if   orientacao_estimada == "N": orientacao_estimada = "O"
     elif orientacao_estimada == "S": orientacao_estimada = "L"
     elif orientacao_estimada == "L": orientacao_estimada = "N"
     elif orientacao_estimada == "O": orientacao_estimada = "S"
-
     print(f"virar_esquerda: {orientacao_estimada=}")
-    rodas.turn(-90)
 
 DIST_PARAR=-0.4
 def parar():
