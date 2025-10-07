@@ -160,6 +160,10 @@ def pista_unificado(color, hsv):
     deles = (color == Color.WHITE) or (color == Color.GREEN)
     return deles
 
+def branco_unificado(color, hsv):
+    deles = (color == Color.WHITE)
+    return deles
+
 def area_livre_unificado(color, hsv):
     deles = (color == Color.GREEN)
     return deles
