@@ -192,7 +192,7 @@ def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo(hub)
     return cor != cores.NENHUMA
 
-def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[int, tuple[Any]]: # type: ignore
+def _andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[int, tuple[Any]]: # type: ignore
     rodas.reset()
     rodas.straight(dist_max, wait=False)
     while not rodas.done():
@@ -205,25 +205,24 @@ def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[int, tu
     return 0, (rodas.distance(),)
 
 def andar_ate(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[Callable, tuple[Any]]: # type: ignore
-    idx, extra = andar_ate_idx(*conds_parada, dist_max)
-    return conds_parada[idx], extra
+    idx, extra = _andar_ate_idx(*conds_parada, dist_max)
+    func = conds_parada[idx-1] if idx else None
+    return (func, extra)
     
 nunca_parar   = (lambda: (False, False))
 ou_manter_res = (lambda res, ext: (res, ext))
 
-#! reimplementar usando andar_ate
 #! talvez mudar pra retornar só bool, dist (pegar as informações extras na própria função)
-def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
-                            ou=ou_manter_res, dist_max=PISTA_TODA):
-    succ, neut, frac = 1, 2, 3
+def andar_ate_bool(succ, neut=nunca_parar, frac=ver_nao_pista,
+                         ou=ou_manter_res, dist_max=PISTA_TODA):
     while True:
-        res, extra = andar_ate_idx(sucesso, neutro, fracasso,
-                                   dist_max=dist_max)
+        func, extra = andar_ate(succ, neut, frac,
+                                dist_max=dist_max)
 
-        if   res == succ: return True, extra
-        elif res == frac: return False, extra
-        elif res == neut: continue
-        elif res == 0:
+        if   func == succ: return True, extra
+        elif func == frac: return False, extra
+        elif func == neut: continue
+        elif not func:
             print("andar_ate_cor: andou demais")
             return False, (None,) #ou(res, extra)
         else: 
@@ -237,10 +236,10 @@ def cor_final(retorno):
     else:     return cores.todas(sensor_cor_esq, sensor_cor_dir)
 
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
-    return cor_final(andar_ate_idx(ver_nao_pista))
+    return cor_final(_andar_ate_idx(ver_nao_pista))
 
 def achar_diferente() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
-    return cor_final(andar_ate_idx(ver_nao_verde))
+    return cor_final(_andar_ate_idx(ver_nao_verde))
 
 def alinha_parede(vel, vel_ang, giro_max=45,
                   _cor_unificado=cores.area_livre_unificado,
@@ -250,7 +249,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
     alinhado_pista  = lambda esq, dir: _cor_unificado(*esq) and _cor_unificado(*dir)
 
     with mudar_velocidade(rodas, vel, vel_ang):
-        parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO)
+        parou, extra = _andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO)
         if not parou:
             (dist,) = extra
             print(f"alinha_parede: reto pista {dist}")
@@ -431,10 +430,10 @@ def procura_inicial(hub, xy, caçambas): #! considerar inimigo
     entra_primeira_rua(hub)
 
     x, _ = xy #! para procura genérico, usar y também
-    i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
+    i, extra = _andar_ate_idx(ver_cubo_perto, ver_nao_pista)
     while i == 2:
         x += 2 #! para procura genérico, considerar orientação
-        i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
+        i, extra = _andar_ate_idx(ver_cubo_perto, ver_nao_pista)
     assert i == 1
 
     cor = extra
