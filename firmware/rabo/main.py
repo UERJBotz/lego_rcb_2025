@@ -24,12 +24,12 @@ def main(hub):
             cor = ord(uart.read(1))
             print(cor)
 
-            hub.ble.broadcast((blt.comando_bt.cor_cacamba, cor))
+            hub.ble.broadcast((blt.comando_bt.cor_caçamba, cor))
 
         comando = hub.ble.observe(blt.TX_CABECA)
         if comando is not None:
-            print(f"rabo: {comando}");
-            comando, *args = comando
+            print(f"rabo: {comando}")
+            #comando, *args = comando
         else: continue
 
 

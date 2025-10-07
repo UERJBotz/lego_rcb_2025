@@ -12,7 +12,7 @@ import garra
 #! se a gente girar a garra na mão, mesmo resetando a cabeça, o estado da garra no braço se mantém e a gente se fode.
 
 def LOG(*args, print=print, **kwargs):
-    print("braço", *args, **kwargs)
+    print("braço:", *args, **kwargs)
 
 def ERRO(hub, *args):
     from lib.bipes import bipe_falha
@@ -45,6 +45,7 @@ def setup():
 
     hub.system.set_stop_button((Button.CENTER,))
 
+    LOG("ligando arduino")
     try:
         from pybricks.pupdevices import DCMotor as DC
         arduino5V = DC(Port.F).dc(100)
