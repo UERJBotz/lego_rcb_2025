@@ -5,14 +5,14 @@ from lib.polyfill import Enum, rgb_to_hsv, hsv_to_rgb
 
 from lib.cores_calibradas_ import mapa_hsv, mapa_hsv_frente
 
-cor = Enum("cor", ["AMARELO",
-                   "VERDE",
-                   "AZUL",
-                   "VERMELHO",
-                   "MARROM",
+cor = Enum("cor", ["NENHUMA",
                    "PRETO",
+                   "AZUL",
+                   "VERDE",
+                   "AMARELO",
+                   "VERMELHO",
                    "BRANCO",
-                   "NENHUMA"])
+                   "MARROM"])
 
 def Color2tuple(color):
     return color.h, color.s, color.v
@@ -34,15 +34,15 @@ def Color2cor (color):
         return el
 
 cor2Color = [
-    Color.YELLOW,
-    Color.GREEN,
-    Color.BLUE,
-    Color.RED,
-    Color.BROWN,
+    Color.NONE,
     Color.BLACK,
+    Color.BLUE,
+    Color.GREEN,
+    Color.YELLOW,
+    Color.RED,
     Color.WHITE,
+    Color.BROWN,
 ]
-
 #hsv = tuple[float, float, float]
 
 def norm_hsv(hsv):
