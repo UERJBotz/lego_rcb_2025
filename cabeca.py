@@ -405,43 +405,25 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
             wait(100)
             return mapa_hsv
 
-def achar_vermelho(hub) -> bool:
-    esq, dir = achar_nao_verde_alinhado()
-    if cores.beco_unificado(*esq) and cores.beco_unificado(*dir):
-        dar_re_meio_quarteirao()
-        return True
-    # if cores.beco_unificado(*esq) or cores.beco_unificado(*dir):
-    #     alinha_giro()
-    else:
-        choice((virar_direita, virar_esquerda))()
-    return False
-
-def achar_azul(hub) -> bool:
-    esq, dir = achar_nao_verde_alinhado()
-    if cores.azul_unificado(*esq) and cores.azul_unificado(*dir):
-        dar_re_meio_quarteirao()
-        return True #! cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.beco_unificado)?
-    else:
-        dar_re_meio_quarteirao()
-        dar_meia_volta()
-    return False
-
-
 def posicionamento_inicial(hub):
-    #! alinha_giro()
-    achou_vermelho = False
-    while not achou_vermelho:
-        achou_vermelho = achar_vermelho(hub)
-    bipe_separador(hub)
-    print("achou vermelho")
+    global orientacao_estimada
 
-    choice((virar_direita, virar_esquerda))()
-    achou_azul = False
-    while not achou_azul:
-        achou_azul = achar_azul(hub)
-    bipe_separador(hub)
-    print("achou azul")
-    reseta_xy(hub) # vai para o 0,0 do verde
+    viu_vermelho = False
+    while not (viu_vermelho and orientacao_estimada == "L"):
+        esq, dir = achar_nao_verde_alinhado()
+
+        bipe_separador(hub)
+        dar_re_meio_quarteirao()
+        if   cores.azul_unificado(*esq) and cores.azul_unificado(*dir):
+            orientacao_estimada = "L"
+            virar_esquerda()
+        elif cores.beco_unificado(*esq) and cores.beco_unificado(*dir):
+            viu_vermelho = True
+            virar_direita()
+        else: # amarelo assumido
+            orientacao_estimada = "O"
+            virar_direita()
+
     return descobrir_cor_caçambas(hub)
 
 def procura_inicial(hub, xy, caçambas): #! considerar inimigo
@@ -467,8 +449,8 @@ def procura_inicial(hub, xy, caçambas): #! considerar inimigo
 class caçamba:
     def __init__(self, pos=0):
         self.pos = pos
-        self.num_cubos = 0
         self.cor = cores.cor.NENHUMA
+        self.num_cubos = 0
 
 caçambas = [caçamba(dist) for dist in DISTS_CAÇAMBAS]
 
@@ -597,7 +579,6 @@ def teste_colocar_caçambas():
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
     posicionamento_inicial(hub)
-    #teste_colocar_caçambas()
 
 
 if __name__ == "__main__":
