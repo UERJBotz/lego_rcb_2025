@@ -18,7 +18,7 @@ import bluetooth as blt
 
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
-GIRO_MAX_ALINHAR = 70 #!80
+GIRO_MAX_ALINHAR = 90 #70
 
 TAM_QUARTEIRAO = 300
 TAM_BLOCO = TAM_QUARTEIRAO//2
@@ -151,13 +151,13 @@ def virar_esquerda():
     elif orientacao_estimada == "O": orientacao_estimada = "S"
     print(f"virar_esquerda: {orientacao_estimada=}")
 
-DIST_PARAR=-0.4
+DIST_PARAR=0.4 #! checar valor
 def parar():
-    rodas.straight(DIST_PARAR)
+    rodas.straight(-DIST_PARAR)
     rodas.stop()
-ANG_PARAR=-0.0
+ANG_PARAR=0.0
 def parar_girar():
-    rodas.turn(ANG_PARAR)
+    rodas.turn(-ANG_PARAR)
     rodas.stop()
 
 def dar_re(dist):
@@ -178,7 +178,7 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
 def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     #! usar verificar_cor em vez disso?
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
-    print(f"esq: {esq}, dir: {dir}")
+    print(f"ver_não_verde: {esq}, {dir}")
     return ((not cores.area_livre_unificado(*esq) or not cores.area_livre_unificado(*dir)),
             esq, dir)
 
@@ -234,54 +234,66 @@ def cor_final(retorno):
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     return cor_final(andar_ate_idx(ver_nao_pista))
 
-def achar_diferente() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
+def achar_nao_verde() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
     return cor_final(andar_ate_idx(ver_nao_verde))
+
+def achar_nao_verde_alinhado():
+    achar_nao_verde()
+    dar_re(TAM_FAIXA) #!//2?
+    return alinhar()#alinha_giro() #
+
 
 def alinha_parede(vel, vel_ang, giro_max=45,
                   _cor_unificado=cores.area_livre_unificado,
                   _ver_nao_x=ver_nao_verde
                   ) -> bool:
-    alinhado_parede = lambda esq, dir: not _cor_unificado(*esq) and not _cor_unificado(*dir)
+    desalinhado_branco = lambda esq, dir: cores.branco_unificado(*esq)  ^  cores.branco_unificado(*dir)
+    alinhado_nao_pista = lambda esq, dir: (not _cor_unificado(*esq))   and (not _cor_unificado(*dir))
+    
     alinhado_pista  = lambda esq, dir: _cor_unificado(*esq) and _cor_unificado(*dir)
+    alinhado_parede = lambda esq, dir: alinhado_nao_pista(esq, dir) and not desalinhado_branco(esq, dir)
 
     with mudar_velocidade(rodas, vel, vel_ang):
         parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO)
         if not parou:
             (dist,) = extra
             print(f"alinha_parede: reto pista {dist}")
-            return False # viu só branco, não sabemos se tá alinhado
+            return False, extra # viu só branco, não sabemos se tá alinhado
     
         (esq, dir) = extra
         if  alinhado_parede(esq, dir):
-            print("alinha_parede: reto não pista")
-            return True
+            print(f"alinha_parede: reto não pista {esq}, {dir}")
+            return True, extra
         elif not _cor_unificado(*dir):
-            print("alinha_parede: torto pra direita")
-            GIRO = -giro_max
-        elif not _cor_unificado(*esq):
-            print("alinha_parede: torto pra esquerda")
+            print(f"alinha_parede: torto pra direita {esq}, {dir}")
             GIRO = giro_max
+        elif not _cor_unificado(*esq):
+            print(f"alinha_parede: torto pra esquerda {esq}, {dir}")
+            GIRO = -giro_max
 
         rodas.turn(GIRO, wait=False) #! fazer gira_ate
+        print("alinha_parede: girando")
         while not rodas.done():
-            esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
-            print(esq, dir)
+            extra = cores.todas(sensor_cor_esq, sensor_cor_dir)
+            esq, dir = extra
             if  alinhado_parede(esq, dir):
-                print("alinha_parede: alinhado parede")
+                print(f"alinha_parede: alinhado parede: {esq}, {dir}")
                 parar_girar()
-                return True # deve tar alinhado
+                return True, extra # deve tar alinhado
             elif alinhado_pista(esq, dir):
-                print("alinha_parede: alinhado pista")
+                print(f"alinha_parede: alinhado pista: {esq}, {dir}")
                 parar_girar()
-                return False #provv alinhado, talvez tentar de novo
-        return False # girou tudo, não sabemos se tá alinhado
+                return False, extra #provv alinhado, talvez tentar de novo
+        print(f"alinha_parede: girou tudo, {esq}, {dir}")
+        return False, extra # girou tudo, não sabemos se tá alinhado
 
-def alinhar(max_tentativas=4, virar=True,
+#! tem que retornar a cor
+def alinha_giro(max_tentativas=4, virar=True, #! virar=False?
                               vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR,
                               giro_max=GIRO_MAX_ALINHAR) -> None:
     for _ in range(max_tentativas): #! esqueci mas tem alguma coisa
         rodas.reset()
-        alinhou = alinha_parede(vel, vel_ang, giro_max=giro_max)
+        alinhou, extra = alinha_parede(vel, vel_ang, giro_max=giro_max)
 
         ang  = rodas.angle()
         dist = rodas.distance()
@@ -290,18 +302,35 @@ def alinhar(max_tentativas=4, virar=True,
             dar_re(dist)
             rodas.turn(ang)
 
-        if alinhou: return
+        if alinhou: return extra
         else:
             if virar: virar_direita() #! testar agora
             continue
-    return
+    return extra
 
-def alinha_limite(max_tentativas=3, vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_max=70) -> None:
+def alinhar(max_tentativas=4, virar=True, #! virar=False?
+                              vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR,
+                              giro_max=GIRO_MAX_ALINHAR) -> None:
+    for _ in range(max_tentativas):
+        rodas.reset()
+
+        alinhou, extra = alinha_parede(vel, vel_ang, giro_max=giro_max)
+        ang  = rodas.angle()
+        dist = rodas.distance()
+        if alinhou: return extra
+        else:
+            with mudar_velocidade(rodas, 80, 30):
+                rodas.turn(-ang)
+                dar_re(dist)
+                rodas.turn(ang)
+    return extra
+
+def alinha_re(max_tentativas=3, vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_max=70) -> None:
     for _ in range(max_tentativas):
         rodas.reset()
         dar_re_meio_quarteirao()
 
-        alinhou = alinha_parede(vel, vel_ang, giro_max=giro_max)
+        alinhou, extra = alinha_parede(vel, vel_ang, giro_max=giro_max)
         ang  = rodas.angle()
         dist = rodas.distance()
         if alinhou: return
@@ -310,7 +339,7 @@ def alinha_limite(max_tentativas=3, vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, gi
                 rodas.turn(-ang)
                 dar_re(dist)
                 rodas.turn(ang)
-    return
+    return extra
 
 def seguir_caminho(pos, obj): #! lidar com outras coisas
     def interpretar_movimento(mov):
@@ -377,29 +406,21 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
             return mapa_hsv
 
 def achar_vermelho(hub) -> bool:
-    esq, dir = achar_diferente(); alinhar()
+    esq, dir = achar_nao_verde_alinhado()
     if cores.beco_unificado(*esq) and cores.beco_unificado(*dir):
         dar_re_meio_quarteirao()
         return True
-    elif cores.beco_unificado(*esq):
-        alinhar()
-    elif cores.beco_unificado(*dir):
-        alinhar()
+    # if cores.beco_unificado(*esq) or cores.beco_unificado(*dir):
+    #     alinha_giro()
     else:
         choice((virar_direita, virar_esquerda))()
     return False
 
 def achar_azul(hub) -> bool:
-    choice((virar_direita, virar_esquerda))()
-    esq, dir = achar_diferente(); alinhar()
+    esq, dir = achar_nao_verde_alinhado()
     if cores.azul_unificado(*esq) and cores.azul_unificado(*dir):
         dar_re_meio_quarteirao()
-        return True
-        #return cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.beco_unificado)
-    elif cores.azul_unificado(*esq):
-        alinhar()
-    elif cores.azul_unificado(*dir):
-        alinhar()
+        return True #! cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.beco_unificado)?
     else:
         dar_re_meio_quarteirao()
         dar_meia_volta()
@@ -407,13 +428,14 @@ def achar_azul(hub) -> bool:
 
 
 def posicionamento_inicial(hub):
-    #! alinhar()
+    #! alinha_giro()
     achou_vermelho = False
     while not achou_vermelho:
         achou_vermelho = achar_vermelho(hub)
     bipe_separador(hub)
     print("achou vermelho")
 
+    choice((virar_direita, virar_esquerda))()
     achou_azul = False
     while not achou_azul:
         achou_azul = achar_azul(hub)
@@ -574,7 +596,8 @@ def teste_colocar_caçambas():
 
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
-    teste_colocar_caçambas()
+    posicionamento_inicial(hub)
+    #teste_colocar_caçambas()
 
 
 if __name__ == "__main__":
