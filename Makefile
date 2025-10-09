@@ -39,9 +39,9 @@ braco_teste:  $(TESTE_BRACO)
 	$(PYBRICKS) run ble --name $(NOME_BRACO) $<
 
 $(TESTE_CABECA): cabeca.py
-	echo "TESTE = True" > $@; cat $< >> $@
+	echo "TESTE = True; DEBUG = True" > $@; cat $< >> $@
 $(TESTE_BRACO): braco.py
-	echo "TESTE = True" > $@; cat $< >> $@
+	echo "TESTE = True; DEBUG = True" > $@; cat $< >> $@
 
 
 .PHONY: rabo
