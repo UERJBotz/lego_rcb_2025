@@ -1,7 +1,7 @@
 from pybricks.hubs import PrimeHub
 
 from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
-from pybricks.parameters import Port, Stop, Side, Direction, Button, Color
+from pybricks.parameters import Port, Stop, Side, Axis, Direction, Button, Color
 
 from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
@@ -55,7 +55,8 @@ def setup():
     
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
                    observe_channels=[blt.TX_BRACO,
-                                     blt.TX_RABO])
+                                     blt.TX_RABO],
+                    front_side=Axis.X, top_side=-Axis.Z)
     nome, bat = hub.system.name(), hub.battery.voltage()
 
     print(f"{nome}: {bat}mV")
@@ -78,6 +79,7 @@ def setup():
 
     rodas = DriveBase(roda_esq, roda_dir,
                       wheel_diameter=88, axle_track=145.5) #! recalibrar
+    rodas.use_gyro(True)
 
     botao_calibrar = Button.BLUETOOTH
 
@@ -105,6 +107,10 @@ def main(hub):
 
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
+    rodas.turn(90)
+    rodas.turn(-90)
+    rodas.straight(1000)
+    wait(1000)
 
 
 def LOG(*args, print=print, **kwargs):
