@@ -100,6 +100,7 @@ def main(hub):
 
     blt.resetar_garra(hub)
 
+    abaixar_garra(hub)
     caçambas = posicionamento_inicial(hub)
     cor, xy = procura_inicial(hub, 00, caçambas)
     coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
@@ -622,4 +623,5 @@ if __name__ == "__main__":
         bipe_final(hub)
     except Exception as e:
         bipe_falha(hub)
+        blt.resetar_garra(hub)
         raise e
