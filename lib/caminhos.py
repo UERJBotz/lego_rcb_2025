@@ -1,50 +1,85 @@
 from lib.polyfill import Enum, heappop, heappush
 
-tipo_celula = Enum("tipo_celula", ["RUA",
-                                   "CRUZ",
-                                   "NADA",
-                                   "SAFE"])
 
-tipo_parede = Enum("tipo_parede", ["PAREDE",
-                                   "ENTRADA"])
+class COR:
+    VERM = '\033[91m'
+    VERD = '\033[92m'
+    ENDC = '\033[0m'
 
+def color(col, texto):
+    return col + texto + COR.ENDC
+
+
+direcionalidade = Enum("direcionalidade", ["NENHUMA",
+                                           "HORIZONTAL",
+                                           "VERTICAL"])
 estado_celula = Enum("estado_celula", ["LIVRE",
                                        "OCUPADA",
                                        "INCERTO"])
 
-posicao_parede = Enum("posicao_parede", ["N", "L", "S", "O"])
+class Bloco:
+    def __init__(self, estado=estado_celula.LIVRE,
+                       direc=direcionalidade.NENHUMA, mut=False):
+        self.estado  = estado
+        self.direc   = direc
+        self.mutável = mut
 
-class Rua:
-    def __init__(self):
-        self.tipo = tipo_celula.RUA
-        self.estado = estado_celula.INCERTO
-    def __str__(self):
-        return '*'
+class Nada(Bloco):
+    def __init__(self, estado=estado_celula.OCUPADA,
+                       direc=direcionalidade.NENHUMA, mut=False):
+        super().__init__(estado, direc, mut)
+    def __str__(self): return ' '
 
-class Cruz:
-    def __init__(self):
-        self.tipo = tipo_celula.RUA
-        self.estado = estado_celula.LIVRE
-    def __str__(self):
-        return '*'
+class Rua(Bloco):
+    def __init__(self, estado=estado_celula.INCERTO,
+                       direc=direcionalidade.NENHUMA, mut=False):
+        super().__init__(estado, direc, mut)
 
-class Safe:
-    def __init__(self):
-        self.tipo = tipo_celula.SAFE
-        self.estado = estado_celula.LIVRE
-    def __str__(self):
-        return '#'
+class Cruz(Rua):
+    def __init__(self, estado=estado_celula.LIVRE,
+                       direc=direcionalidade.NENHUMA, mut=False):
+        super().__init__(estado, direc, mut)
+    def __str__(self): return '#'
 
-class Nada:
-    def __init__(self):
-        self.tipo = tipo_celula.NADA
-        self.estado = estado_celula.OCUPADA
-    def __str__(self):
-        return ' '
+class Safe(Cruz):
+    def __str__(self): return '*'
 
-# celula = Rua | Cruzamento | Safezone | Void
+class Vert(Rua):
+    def __init__(self, estado=estado_celula.INCERTO,
+                       direc=direcionalidade.VERTICAL, mut=True):
+        super().__init__(estado, direc, mut)
+    def __str__(self): return '|'
 
-def imprime_matriz(matriz):
+class Hori(Rua):
+    def __init__(self, estado=estado_celula.INCERTO,
+                       direc=direcionalidade.HORIZONTAL, mut=True):
+        super().__init__(estado, direc, mut)
+    def __str__(self): return '—'
+
+
+mapa = [
+    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+]
+
+def coloca_obstaculo(pos):
+    y, x = pos; cel = mapa[y][x]
+    if cel.mutável: #! falhar mais alto
+        cel.estado = estado_celula.OCUPADA
+
+def tira_obstaculo(pos):
+    y, x = pos; cel = mapa[y][x]
+    if cel.mutável: #! falhar mais alto
+        cel.estado = estado_celula.LIVRE
+
+def imprimir_mapa(matriz=mapa):
     """Imprime a matriz de forma alinhada."""
     largura_maxima = 12
 
@@ -53,41 +88,17 @@ def imprime_matriz(matriz):
         print((f"{i}     ")[:2], end=' ')
     print()
 
-    i = 0
-    for linha in matriz:
+    for i, linha in enumerate(matriz):
         print(i, end=' ')
-        i += 1
 
         for celula in linha:
             texto = str(celula)
-            estado = 'X' if celula.estado == estado_celula.OCUPADA else (
-                     '?' if celula.estado == estado_celula.INCERTO else texto)
+            estado = color(COR.VERM, 'X') if celula.estado == estado_celula.OCUPADA else (
+                                     '?'  if celula.estado == estado_celula.INCERTO else (
+                     color(COR.VERD, texto)))
             print(estado*2, end=" ")
         print()
 
-#! ver se lambdar os outros também
-
-def coloca_obstaculo(x, y):
-    cel = mapa[y][x]
-    if cel.tipo == tipo_celula.RUA: #! falhar mais alto
-        cel.estado = estado_celula.OCUPADA
-
-def tira_obstaculo(x, y):
-    cel = mapa[y][x]
-    if cel.tipo == tipo_celula.RUA:
-        cel.estado = estado_celula.LIVRE
-
-mapa = [
-    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
-    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
-    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
-    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
-    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
-    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
-    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()],
-    [Safe(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua(), Nada(),  Rua()],
-    [Safe(), Safe(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz(),  Rua(), Cruz()]
-]
 
 ## implementação do A* (adaptada de <https://www.geeksforgeeks.org/a-search-algorithm-in-python/>)
 class Cell():
@@ -120,6 +131,20 @@ def celula_ocupada(grid, cell):
 def celula_livre(grid, cell):
     row, col = cell
     return grid[row][col].estado == estado_celula.LIVRE
+
+def celula_especialmente_bloqueada(mapa, curr, new):
+    i, j = curr
+    new_i, new_j = new
+    new = mapa[new_i][new_j]
+    if new.direc == direcionalidade.NENHUMA: return False
+
+    horizontal = (new_i == i) 
+    vertical   = (new_j == j)
+
+    if vertical   and new.direc == direcionalidade.VERTICAL:   return False
+    if horizontal and new.direc == direcionalidade.HORIZONTAL: return False
+
+    return True
 
 #!
 def eh_destino(src, dest):
@@ -209,7 +234,11 @@ def a_estrela(grid, src, dest):
             new = new_i, new_j
 
             # If the successor is valid, (unblocked or is destiny), and not visited
-            if dentro_dos_limites(grid, new) and (celula_livre(grid, new) or eh_destino(new, dest)) and not closed_list[new_i][new_j]:
+            if ((dentro_dos_limites(grid, new) and celula_livre(grid, new)) or
+                (eh_destino(new, dest) and not closed_list[new_i][new_j])):
+
+                if celula_especialmente_bloqueada(grid, (i,j), new): continue
+
                 # If the successor is the destination
                 if eh_destino(new, dest):
                     # Set the parent of the destination cell
@@ -225,7 +254,8 @@ def a_estrela(grid, src, dest):
                     f_new = g_new + h_new
 
                     # If the cell is not in the open list or the new f value is smaller
-                    if info_celulas[new_i][new_j].f == float('inf') or info_celulas[new_i][new_j].f > f_new:
+                    if (info_celulas[new_i][new_j].f == float('inf') or
+                        info_celulas[new_i][new_j].f > f_new):
                         # Add the cell to the open list
                         heappush(open_list, (f_new, new_i, new_j))
                         # Update the cell details
@@ -279,6 +309,9 @@ def prox_movimento(ori_ini: tipo_movimento, ori_final: tipo_movimento): #type: i
         else:
             assert False
 
+
+posicao_parede = Enum("posicao_parede", ["N", "L", "S", "O"])
+
 def movimento_relativo(cam_rel, orientacao_ini):
     idx_orientacao = posicao_parede[orientacao_ini]
     nova_orientacao = orientacao_ini
@@ -308,22 +341,17 @@ def pegar_celulas_incertas():
     for i in range(len(mapa)):
         for j in range(len(mapa[i])):
             if mapa[i][j].estado == estado_celula.INCERTO:
-                x, y = j, i
-                incertas.append((x, y))
+                incertas.append((i, j))
     return incertas
 
-def achar_movimentos(pos_ini, pos_fim, orientacao):
-    pos_ini = pos_ini[1], pos_ini[0]
-    pos_fim = pos_fim[1], pos_fim[0]
+def achar_caminhos(pos_ini, pos_fim):
     caminho = a_estrela(mapa, pos_ini, pos_fim)
-    if not caminho:
-        return None, orientacao
+    return caminho
 
-    print("achar_movimentos:", *caminho, sep=" -> ")
+def achar_movimentos(caminho, orientacao):
     caminho_rel = caminho_relativo(caminho)
-    print(f"achar_movimentos: {caminho_rel=}")
-
     movimentos, ori_fim = movimento_relativo(caminho_rel, orientacao)
-    print(orientacao, [tipo_movimento(i) for i in movimentos], ori_fim)
+
+    if not caminho: return None, orientacao
     return movimentos, ori_fim
 
