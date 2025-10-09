@@ -30,7 +30,7 @@ TAM_CUBO = 50
 
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
-DIST_VERDE_CAÇAMBA = 73
+DIST_VERDE_CAÇAMBA = 60 #73
 
 DISTS_CAÇAMBAS = [DIST_BORDA_CAÇAMBA + TAM_CAÇAMBA*i + DIST_CAÇAMBA*i for i in range(NUM_CAÇAMBAS)]
 
@@ -465,7 +465,7 @@ def alinhar_caçambas(orientacao_estimada):
     print("alinhar_caçambas: viu não verde (espera amarelo)")
     dar_re_meio_quarteirao()
 
-    virar_esquerda()
+    virar_direita()
     andar_ate_bool(ver_nao_verde)
     print("alinhar_caçambas: viu não verde (espera vermelho)")
 
@@ -482,9 +482,9 @@ def soltar_cubo_na_caçamba(caçambas, cor_cubo, hub, max_cubos=2): #! suportar 
         if cor_cubo == caçamba.cor:
             if caçamba.num_cubos > max_cubos: continue
 
-            rodas.straight(caçamba.pos - DIST_BORDA_CAÇAMBA +
-                           margem + caçamba.num_cubos*(TAM_CUBO+espaçamento))
-            virar_esquerda()
+            rodas.straight(caçamba.pos - DIST_BORDA_CAÇAMBA - margem
+                          + caçamba.num_cubos*(TAM_CUBO + espaçamento))
+            virar_direita()
 
             andar_ate_bool(ver_nao_verde)
             rodas.straight(DIST_VERDE_CAÇAMBA)
@@ -506,20 +506,7 @@ def cores_caçambas(caçambas):
         caçamba[i].cor = blt.ver_cor_caçamba()
         print(f"Cor caçamba: {caçamba[i].cor}")
 
-def orientacao_chao(sensor_cor_dir, sensor_cor_esq):
-    while True:
-        #! está direita na esquerda e esquerda na direita
-        if   (sensor_cor_dir.color() == Color.YELLOW and sensor_cor_esq.color() == Color.YELLOW):
-            return "O"
-        elif (sensor_cor_dir.color() == Color.BLUE and sensor_cor_esq.color() == Color.BLUE):
-            return "L"
-        elif (sensor_cor_dir.color() == Color.RED or sensor_cor_esq.color() == Color.RED):
-            rodas.turn(30) #! testar com 60
-        else:
-            rodas.straight(TAM_QUARTEIRAO//5)
-
 def salvar_caçambas():
-    orientacao_estimada = orientacao_chao(sensor_cor_dir, sensor_cor_esq)
     alinhar_caçambas(orientacao_estimada)
     virar_esquerda()
     andar_ate_bool(ver_nao_verde)
@@ -548,8 +535,16 @@ def main(hub):
     procura(hub)
 
 
-def teste_ver_caçambas():
-    salvar_caçambas()
+def teste_ver_caçambas(opcao):
+    if opcao == 0:
+        global orientacao_estimada 
+        orientacao_estimada = "L"
+        salvar_caçambas()
+    if opcao == 1:
+        while True:
+            cor = blt.ver_cor_caçamba(hub)
+            print(cor)
+            print(cores.cor2Color[cor])
 
 def teste_colocar_caçambas():
     global orientacao_estimada
@@ -557,13 +552,16 @@ def teste_colocar_caçambas():
 
     for i in range(len(cor_caçamba)):
         caçambas[i].cor = cor_caçamba[i]
+    
+    caçambas[2].num_cubos = 1
+
 
     blt.resetar_garra(hub)
     blt.fechar_garra(hub)
     blt.levantar_garra(hub)
     cor_cubo = blt.ver_cor_cubo(hub)
 
-    orientacao_estimada = "O"
+    orientacao_estimada = "L"
     alinhar_caçambas(orientacao_estimada)
     soltar_cubo_na_caçamba(caçambas, cor_cubo, hub)
 
@@ -573,11 +571,7 @@ def teste_colocar_caçambas():
 
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
-    while True:
-        cor = blt.ver_cor_caçamba(hub)
-        print(cor)
-        print(cores.cor2Color[cor])
-
+    teste_colocar_caçambas()
 
 if __name__ == "__main__":
     from lib.bipes import bipe_inicio, bipe_final, bipe_falha
