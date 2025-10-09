@@ -8,14 +8,14 @@ from pybricks.robotics   import DriveBase
 
 from lib.bipes    import bipe_calibracao, bipe_cabeca, bipe_separador, musica_vitoria, musica_derrota
 
-from lib.caminhos import achar_movimentos, tipo_movimento, tira_obstaculo
+from lib.caminhos import achar_movimentos, achar_caminhos, tipo_movimento
+from lib.caminhos import coloca_obstaculo, tira_obstaculo, pegar_celulas_incertas, imprimir_mapa
 
 from urandom import choice
 
-import gui
 import cores
+import gui
 import bluetooth as blt
-
 
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
@@ -42,17 +42,19 @@ DISTS_CAÇAMBAS = [ DIST_BORDA_CAÇAMBA +
 PISTA_TODA = TAM_QUARTEIRAO*6
 
 
-#! checar stall: jogar exceção
-#! checar cor errada no azul
-#! tem um lugar começo do achar azul que tem que dar ré
+#! 2024: checar stall: jogar exceção
+#! 2024: checar cor errada no azul
 
+#! a gente não leva em consideração a distância entre o sensor e a roda
+##! na hora de começar a procura e não leva em consideração a distância
+##! entre a roda e a garra na hora de pegar
 
 def setup():
     global hub, rodas
     global sensor_cor_esq, sensor_cor_dir, sensor_ultra_esq, sensor_ultra_dir
     global botao_calibrar, orientacao_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
-    
+
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
                    observe_channels=[blt.TX_BRACO,
                                      blt.TX_RABO],
@@ -87,11 +89,11 @@ def setup():
     vel_padrao     = rodas_conf_padrao[0]
     vel_ang_padrao = rodas_conf_padrao[2]
     vels_padrao = vel_padrao, vel_ang_padrao
-    
+
     return hub
 
 def main(hub):
-    global orientacao_estimada
+    global orientacao_estimada, pos_estimada
     if deve_calibrar():
         mapa_hsv = menu_calibracao(hub,
                                    sensor_cor_esq,
@@ -102,14 +104,32 @@ def main(hub):
 
     blt.abaixar_garra(hub)
     caçambas = posicionamento_inicial(hub)
-    cor, xy = procura_inicial(hub, 00, caçambas)
+    pos_estimada = (0,0)
+
+    cor, pos_estimada = procura(hub, pos_estimada, caçambas)
     coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
-    procura(hub)
 
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
+    global orientacao_estimada, pos_estimada
+    cores_caçambas = [
+        cores.cor.AZUL, cores.cor.VERDE, cores.cor.VERMELHO
+    ] #! pegar 
+
     blt.resetar_garra(hub)
     blt.abaixar_garra(hub)
+
+    #! mudar mapa para isso poder ser 0,0 sem tar offset
+    pos_estimada = (0,0)
+    orientacao_estimada = "L"
+
+    achar_nao_verde_alinhado()
+    cor, pos_estimada = procura(hub, pos_estimada, cores_caçambas)
+    caminho_volta = achar_caminhos(pos_estimada, (0,0))
+    seguir_caminho(caminho_volta)
+    coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
+    
+    LOG(f"main: {cor=}, {pos_estimada=}")
     wait(1000)
 
 
@@ -359,7 +379,9 @@ def alinhar(max_tentativas=4, virar=True, #! virar=False?
                 rodas.turn(ang)
     return extra
 
-def alinha_re(max_tentativas=3, vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_max=70) -> None:
+def alinha_re(max_tentativas=3,
+              vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR,
+              giro_max=70) -> None:
     for _ in range(max_tentativas):
         rodas.reset()
         dar_re_meio_quarteirao()
@@ -375,8 +397,9 @@ def alinha_re(max_tentativas=3, vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR, giro_m
                 rodas.turn(ang)
     return extra
 
-def seguir_caminho(pos, obj): #! lidar com outras coisas
+def seguir_caminho(caminho): #! lidar com outras coisas
     def interpretar_movimento(mov):
+        #! fazer run length encoding aqui
         if   mov == tipo_movimento.FRENTE:
             rodas.straight(TAM_BLOCO, then=Stop.COAST)
         elif mov == tipo_movimento.TRAS:
@@ -399,7 +422,7 @@ def seguir_caminho(pos, obj): #! lidar com outras coisas
             interpretar_movimento(mov)
             yield rodas.distance()
 
-    movs, ori_final = achar_movimentos(pos, obj, orientacao_estimada)
+    movs, ori_final = achar_movimentos(caminho, orientacao_estimada)
     #LOG(*(tipo_movimento(mov) for mov in movs))
 
     for _ in interpretar_caminho(movs):
@@ -475,7 +498,8 @@ def posicionamento_inicial(hub):
 
     return descobrir_cor_caçambas(hub)
 
-def procura_inicial(hub, xy, caçambas): #! considerar inimigo
+#! considerar inimigo
+def procura_inicial(hub, xy, caçambas):
     entra_primeira_rua(hub)
 
     x, _ = xy #! para procura genérico, usar y também
@@ -488,7 +512,8 @@ def procura_inicial(hub, xy, caçambas): #! considerar inimigo
     cor = extra
     if cor in caçambas:
         pegar_cubo(hub)
-        dar_re_até_verde(hub, xy) #! fazer_caminho_contrário(hub) #! voltar_para_verde(hub, xy)
+        dar_re_até_verde(hub, xy)
+        #! fazer_caminho_contrário(hub) #! voltar_para_verde(hub, xy)
         return cor, xy
     else:
         fazer_caminho_contrário(hub) #! voltar_para_verde(hub, xy)
@@ -548,6 +573,49 @@ def soltar_cubo_na_caçamba(caçambas, cor_cubo, hub, max_cubos=2): #! suportar 
 
     raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
 
+ #! tá empurrando
+def procura(hub, pos_estimada, cores_caçambas):
+    cel_incertas = pegar_celulas_incertas()
+    caminho_todo = []
+    cel_inicio = pos_estimada
+
+    #! ordenar lista com o a_estrela
+    for cel_destino in cel_incertas:
+        LOG("tentando de", cel_inicio, "até :", cel_destino)
+        imprimir_mapa()
+
+        caminho = achar_caminhos(cel_inicio, cel_destino)
+        if not caminho:
+            LOG("procura: nenhum caminho encontrado")
+            continue
+        seguir_caminho(caminho)
+
+        caminho_todo += caminho
+        cel_inicio = cel_destino
+
+        cor = blt.ver_cor_cubo(hub)
+        if cor == cores.cor.NENHUMA: # não tem cubo
+            LOG("procura: cel livre")
+            tira_obstaculo(cel_destino)
+            continue
+        if cor not in cores_caçambas:
+            LOG(f"procura: cubo desconhecido cor {cor}")
+            if cor == cores.cor.BRANCO:
+                bipe_cabeca(hub) #! fazer fora?
+            coloca_obstaculo(cel_destino)
+            dar_re(TAM_BLOCO) #! posição estimada fica errada aqui
+            caminho_todo.pop(-1)
+            cel_inicio = caminho[-1]
+            continue
+
+        LOG(f"procura: cubo cor {cor}")
+        blt.fechar_garra(hub)
+        tira_obstaculo(cel_destino)
+        return cor, cel_inicio
+
+    imprimir_mapa()
+
+    raise SucessoOuCatástrofe()
 
 def cores_caçambas(caçambas):
     """
