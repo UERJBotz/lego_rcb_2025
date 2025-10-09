@@ -2,7 +2,7 @@ from pybricks.parameters import Port, Stop
 from pybricks.tools      import wait
 
 RAIO_ENGRENAGEM  = 6#mm
-DIST_SUBIR_GARRA = 100#mm
+DIST_SUBIR_GARRA = 80#mm #100#mm
 
 ANG_SUBIR_GARRA = DIST_SUBIR_GARRA*RAIO_ENGRENAGEM
 
