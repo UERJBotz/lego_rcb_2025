@@ -33,7 +33,7 @@ TAM_CUBO = 50
 
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
-DIST_VERDE_CAÇAMBA = 73
+DIST_VERDE_CAÇAMBA = 60 #73
 
 DISTS_CAÇAMBAS = [ DIST_BORDA_CAÇAMBA +
                    TAM_CAÇAMBA*i + DIST_CAÇAMBA*i
@@ -322,7 +322,6 @@ def alinha_parede(vel, vel_ang, giro_max=45,
         LOG(f"alinha_parede: girou tudo, {esq}, {dir}")
         return False, extra # girou tudo, não sabemos se tá alinhado
 
-#! tem que retornar a cor
 def alinha_giro(max_tentativas=4, virar=True, #! virar=False?
                               vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR,
                               giro_max=GIRO_MAX_ALINHAR) -> None:
@@ -519,7 +518,7 @@ def alinhar_caçambas(orientacao_estimada):
     LOG("alinhar_caçambas: viu não verde (espera amarelo)")
     dar_re_meio_quarteirao()
 
-    virar_esquerda()
+    virar_direita()
     andar_ate_bool(ver_nao_verde)
     LOG("alinhar_caçambas: viu não verde (espera vermelho)")
 
@@ -536,9 +535,9 @@ def soltar_cubo_na_caçamba(caçambas, cor_cubo, hub, max_cubos=2): #! suportar 
         if cor_cubo == caçamba.cor:
             if caçamba.num_cubos > max_cubos: continue
 
-            rodas.straight(caçamba.pos - DIST_BORDA_CAÇAMBA +
-                           margem + caçamba.num_cubos*(TAM_CUBO+espaçamento))
-            virar_esquerda()
+            rodas.straight(caçamba.pos - DIST_BORDA_CAÇAMBA - margem
+                          + caçamba.num_cubos*(TAM_CUBO + espaçamento))
+            virar_direita()
 
             andar_ate_bool(ver_nao_verde)
             rodas.straight(DIST_VERDE_CAÇAMBA)
@@ -558,32 +557,26 @@ def cores_caçambas(caçambas):
     for i, _ in enumerate(caçambas):
         rodas.straight(TAM_CAÇAMBA)
         caçamba[i].cor = blt.ver_cor_caçamba()
-
-def orientacao_chao(sensor_cor_dir, sensor_cor_esq):
-    while True:
-        #! está direita na esquerda e esquerda na direita
-        if   (sensor_cor_dir.color() == Color.YELLOW and sensor_cor_esq.color() == Color.YELLOW):
-            return "O"
-        elif (sensor_cor_dir.color() == Color.BLUE   and sensor_cor_esq.color() == Color.BLUE):
-            return "L"
-        elif ((sensor_cor_dir.color() == Color.RED    and sensor_cor_esq.color() == Color.BLUE) or
-              (sensor_cor_dir.color() == Color.YELLOW and sensor_cor_esq.color() == Color.RED)):
-            return "S" #! não é bem isso! tá torto
-        elif ((sensor_cor_dir.color() == Color.RED  and sensor_cor_esq.color() == Color.YELLOW) or
-              (sensor_cor_dir.color() == Color.BLUE and sensor_cor_esq.color() == Color.RED)):
-            return "N" #! não é bem isso! tá torto
-        elif (sensor_cor_dir.color() == Color.RED or sensor_cor_esq.color() == Color.RED):
-            rodas.turn(30) #! testar com 60
-        else:
-            rodas.straight(TAM_QUARTEIRAO//5)
+        LOG(f"Cor caçamba: {caçamba[i].cor}")
 
 def salvar_caçambas():
-    orientacao_estimada = orientacao_chao(sensor_cor_dir, sensor_cor_esq)
     alinhar_caçambas(orientacao_estimada)
+    virar_esquerda()
+    andar_ate_bool(ver_nao_verde)
+    rodas.straight(DIST_VERDE_CAÇAMBA)
+    virar_direita()
     cores_caçambas(caçambas, sensor_cor)
 
-def teste_ver_caçambas():
-    salvar_caçambas()
+def teste_ver_caçambas(opcao):
+    if opcao == 0:
+        global orientacao_estimada 
+        orientacao_estimada = "L"
+        salvar_caçambas()
+    if opcao == 1:
+        while True:
+            cor = blt.ver_cor_caçamba(hub)
+            print(cor)
+            print(cores.cor2Color[cor])
 
 def teste_colocar_caçambas():
     global orientacao_estimada
@@ -591,13 +584,16 @@ def teste_colocar_caçambas():
 
     for i in range(len(cor_caçamba)):
         caçambas[i].cor = cor_caçamba[i]
+    
+    caçambas[2].num_cubos = 1
+
 
     blt.resetar_garra(hub)
     blt.fechar_garra(hub)
     blt.levantar_garra(hub)
     cor_cubo = blt.ver_cor_cubo(hub)
 
-    orientacao_estimada = "O"
+    orientacao_estimada = "L"
     alinhar_caçambas(orientacao_estimada)
     soltar_cubo_na_caçamba(caçambas, cor_cubo, hub)
 
@@ -605,14 +601,11 @@ def teste_colocar_caçambas():
     blt.resetar_garra(hub)
 
 
-
 if __name__ == "__main__":
     from lib.bipes import bipe_inicio, bipe_final, bipe_falha
 
     try:    TESTE == True
     except: TESTE = False
-    try:    DEBUG == True
-    except: DEBUG = False
 
     hub = setup()
     try:
@@ -622,5 +615,4 @@ if __name__ == "__main__":
         bipe_final(hub)
     except Exception as e:
         bipe_falha(hub)
-        blt.resetar_garra(hub)
         raise e

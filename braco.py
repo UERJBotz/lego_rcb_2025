@@ -44,6 +44,7 @@ def setup():
 
     hub.system.set_stop_button((Button.CENTER,))
 
+    LOG("ligando arduino")
     try:
         from pybricks.pupdevices import DCMotor as DC
         arduino5V = DC(Port.F).dc(100)

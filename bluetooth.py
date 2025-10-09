@@ -11,15 +11,16 @@ comando_bt = Enum("comando_bt", ["fecha_garra",
                                  "ver_cor_cubo",
                                  "ver_hsv_cubo",
                                  "ver_distancias",
+                                 "ver_cor_caçamba",
                                  #! fazer um enum comandos e outro respostas
                                  "fechei",
                                  "abri",
                                  "levantei",
                                  "abaixei",
                                  "cor_cubo",
-                                 "cor_cacamba",
                                  "hsv_cubo",
-                                 "distancias"])
+                                 "distancias",
+                                 "cor_caçamba"])
 
 #! tirar hub dos argumentos
 
@@ -74,3 +75,8 @@ def ver_distancias(hub):
     print("ver_distancias:")
     ble.broadcast((comando_bt.ver_distancias,))
     return esperar_resposta(hub, comando_bt.distancias)
+
+def ver_cor_caçamba(hub):
+    print("ver_cor_caçamba:")
+    #ble.broadcast((comando_bt.ver_cor_caçamba,))
+    return esperar_resposta(hub, comando_bt.cor_caçamba, canal=TX_RABO)[0]
