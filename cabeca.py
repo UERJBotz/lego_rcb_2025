@@ -35,11 +35,13 @@ DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
 DIST_VERDE_CAÇAMBA = 60 #73
 
+PISTA_TODA = TAM_QUARTEIRAO*6
+
 DISTS_CAÇAMBAS = [ DIST_BORDA_CAÇAMBA +
                    TAM_CAÇAMBA*i + DIST_CAÇAMBA*i
                    for i in range(NUM_CAÇAMBAS) ]
-
-PISTA_TODA = TAM_QUARTEIRAO*6
+cubos_caçambas = [0 for i in range(NUM_CAÇAMBAS)]
+cores_caçambas = []
 
 
 #! 2024: checar stall: jogar exceção
@@ -48,6 +50,14 @@ PISTA_TODA = TAM_QUARTEIRAO*6
 #! a gente não leva em consideração a distância entre o sensor e a roda
 ##! na hora de começar a procura e não leva em consideração a distância
 ##! entre a roda e a garra na hora de pegar
+
+#! a procura para no meio quando vê um cubo desconhecido e acha que é catástrofe
+
+#! adicionar botão de "soft-reset", que faz o robô começar do início mas
+##! ainda com o estado dele (caçambas etc)
+##! fazer com bluetooth no braco pra ser mais fácil de apertar
+##! quando sofrer exceção e DEBUG == False, entrar num estado que só espera isso
+
 
 def setup():
     global hub, rodas
@@ -103,34 +113,22 @@ def main(hub):
     blt.resetar_garra(hub)
 
     blt.abaixar_garra(hub)
-    caçambas = posicionamento_inicial(hub)
+    posicionamento_inicial(hub)
+
+    if not cores_caçambas:
+        descobrir_cor_caçambas()
     pos_estimada = (0,0)
 
-    cor, pos_estimada = procura(hub, pos_estimada, caçambas)
-    coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
-
-def test(hub):
-    ... # testar coisas aqui sem mudar o resto do código
-    global orientacao_estimada, pos_estimada
-    cores_caçambas = [
-        cores.cor.AZUL, cores.cor.VERDE, cores.cor.VERMELHO
-    ] #! pegar 
-
-    blt.resetar_garra(hub)
-    blt.abaixar_garra(hub)
-
-    #! mudar mapa para isso poder ser 0,0 sem tar offset
-    pos_estimada = (0,0)
-    orientacao_estimada = "L"
-
-    achar_nao_verde_alinhado()
     cor, pos_estimada = procura(hub, pos_estimada, cores_caçambas)
     caminho_volta = achar_caminhos(pos_estimada, (0,0))
     seguir_caminho(caminho_volta)
-    coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
-    
-    LOG(f"main: {cor=}, {pos_estimada=}")
-    wait(1000)
+    colocar_cubo_na_caçamba(cor)
+
+def test(hub):
+    ... # testar coisas aqui sem mudar o resto do código
+    global orientacao_estimada, pos_estimada, cores_caçambas
+    cores_caçambas = [cores.cor.VERMELHO, cores.cor.AMARELO, cores.cor.AZUL, cores.cor.VERDE, cores.cor.PRETO]
+    main(hub)
 
 
 def LOG(*args, print=print, **kwargs):
@@ -496,8 +494,6 @@ def posicionamento_inicial(hub):
             orientacao_estimada = "O"
             virar_direita()
 
-    return descobrir_cor_caçambas(hub)
-
 #! considerar inimigo
 def procura_inicial(hub, xy, caçambas):
     entra_primeira_rua(hub)
@@ -520,16 +516,8 @@ def procura_inicial(hub, xy, caçambas):
         xy = andar_1_quarteirão_no_eixo_y(hub, xy)
         return procura_inicial(hub, xy, caçambas)
 
-class caçamba:
-    def __init__(self, pos=0):
-        self.pos = pos
-        self.cor = cores.cor.NENHUMA
-        self.num_cubos = 0
-
-caçambas = [caçamba(dist) for dist in DISTS_CAÇAMBAS]
-
 #começar da linha ate dist caçamba i - dist traseira ate sensor
-def alinhar_caçambas(orientacao_estimada): 
+def alinhar_caçambas(): 
     """
     vai até amarelo
     aí vira e vai reto até o vermelho,
@@ -538,37 +526,43 @@ def alinhar_caçambas(orientacao_estimada):
     if (orientacao_estimada == "L"): dar_meia_volta()
     if (orientacao_estimada == "S"): virar_direita()
     if (orientacao_estimada == "N"): virar_esquerda()
+    ASSERT(orientacao_estimada == "O", "alinhar_caçambas: é pra ser oeste!")
 
-    andar_ate_bool(ver_nao_verde)
+    achar_nao_verde_alinhado()
     LOG("alinhar_caçambas: viu não verde (espera amarelo)")
     dar_re_meio_quarteirao()
 
     virar_direita()
-    andar_ate_bool(ver_nao_verde)
+    achar_nao_verde_alinhado()
     LOG("alinhar_caçambas: viu não verde (espera vermelho)")
 
     dar_re(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR)
     dar_meia_volta()
 
 #! isso tá em max_cubos=2 mas na verdade só funciona com 1
-def soltar_cubo_na_caçamba(caçambas, cor_cubo, hub, max_cubos=2): #! suportar 2 e 3 cubos rs
+def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
+    global cubos_caçambas
     margem      = TAM_CUBO//2 if max_cubos != 1 else (TAM_CUBO*3)//2
     espaçamento = TAM_CUBO    if max_cubos == 2 else 0
 
     ASSERT(cor_cubo != cores.cor.NENHUMA)
-    for caçamba in caçambas:
-        if cor_cubo == caçamba.cor:
-            if caçamba.num_cubos > max_cubos: continue
+    blt.levantar_garra(hub)
+    alinhar_caçambas()
+    for i, (cor, dist) in enumerate(zip(cores_caçambas, DISTS_CAÇAMBAS)):
+        if cor_cubo == cor:
+            if cubos_caçambas[i] > max_cubos: continue
 
-            rodas.straight(caçamba.pos - DIST_BORDA_CAÇAMBA - margem
-                          + caçamba.num_cubos*(TAM_CUBO + espaçamento))
+            rodas.straight(dist - DIST_BORDA_CAÇAMBA - margem
+                          + cubos_caçambas[i]*(TAM_CUBO + espaçamento))
+            blt.abaixar_garra(hub)
+            blt.levantar_garra(hub)
             virar_direita()
 
-            andar_ate_bool(ver_nao_verde)
+            achar_nao_verde_alinhado()
             rodas.straight(DIST_VERDE_CAÇAMBA)
             blt.abrir_garra(hub)
 
-            caçamba.num_cubos += 1
+            cubos_caçambas[i] += 1
             return
 
     raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
@@ -617,23 +611,16 @@ def procura(hub, pos_estimada, cores_caçambas):
 
     raise SucessoOuCatástrofe()
 
-def cores_caçambas(caçambas):
-    """
-    já alinhado com a primeira caçamba, vê as cores
-    """
-    #! trocar para caçamba in caçambas se a caçamba é uma referência
-    for i, _ in enumerate(caçambas):
-        rodas.straight(TAM_CAÇAMBA)
-        caçamba[i].cor = blt.ver_cor_caçamba()
-        LOG(f"Cor caçamba: {caçamba[i].cor}")
-
 def salvar_caçambas():
-    alinhar_caçambas(orientacao_estimada)
-    virar_esquerda()
-    andar_ate_bool(ver_nao_verde)
-    rodas.straight(DIST_VERDE_CAÇAMBA)
-    virar_direita()
-    cores_caçambas(caçambas, sensor_cor)
+    global cores_caçambas
+    if not cores_caçambas:
+        cores_caçambas = [cores.cor.NENHUMA for i in range(NUM_CAÇAMBAS)]
+
+    alinhar_caçambas()
+    for i in range(NUM_CAÇAMBAS):
+        rodas.straight(TAM_CAÇAMBA)
+        cores_cacambas[i] = blt.ver_cor_caçamba()
+        LOG(f"Cor caçamba: {cores_cacambas[i]}")
 
 def teste_ver_caçambas(opcao):
     if opcao == 0:
@@ -645,28 +632,6 @@ def teste_ver_caçambas(opcao):
             cor = blt.ver_cor_caçamba(hub)
             print(cor)
             print(cores.cor2Color[cor])
-
-def teste_colocar_caçambas():
-    global orientacao_estimada
-    cor_caçamba = [cores.cor.VERMELHO, cores.cor.AMARELO, cores.cor.AZUL, cores.cor.VERDE]
-
-    for i in range(len(cor_caçamba)):
-        caçambas[i].cor = cor_caçamba[i]
-    
-    caçambas[2].num_cubos = 1
-
-
-    blt.resetar_garra(hub)
-    blt.fechar_garra(hub)
-    blt.levantar_garra(hub)
-    cor_cubo = blt.ver_cor_cubo(hub)
-
-    orientacao_estimada = "L"
-    alinhar_caçambas(orientacao_estimada)
-    soltar_cubo_na_caçamba(caçambas, cor_cubo, hub)
-
-    dar_re(DIST_VERDE_CAÇAMBA)
-    blt.resetar_garra(hub)
 
 
 if __name__ == "__main__":
