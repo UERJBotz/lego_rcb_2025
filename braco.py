@@ -12,12 +12,11 @@ import garra
 #! se a gente girar a garra na mão, mesmo resetando a cabeça, o estado da garra no braço se mantém e a gente se fode.
 
 def LOG(*args, print=print, **kwargs):
-    print("braço", *args, **kwargs)
+    print("braço:", *args, **kwargs)
 
-def ERRO(hub, *args):
+def ERRO(*args):
     from lib.bipes import bipe_falha
-    bipe_falha(hub);
-    LOG("ERRO:", args)
+    LOG("ERRO:", *args); bipe_falha(hub)
 
 def setup():
     global hub, motor_garra, motor_vertical, sensor_cor_frente, ultra_dir, ultra_esq
@@ -49,7 +48,7 @@ def setup():
         from pybricks.pupdevices import DCMotor as DC
         arduino5V = DC(Port.F).dc(100)
     except OSError:
-        ERRO(hub, "ARDUINO NÃO CONECTADO!")
+        ERRO("ARDUINO NÃO CONECTADO!")
 
     return hub
 
@@ -117,6 +116,6 @@ if __name__ == "__main__":
         else:     main(hub)
         bipe_final(hub)
       except Exception as e:
-        ERRO(hub, f"{e}")
+        ERRO(f"{e}")
         continue
 

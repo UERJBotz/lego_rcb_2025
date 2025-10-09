@@ -16,9 +16,12 @@ import gui
 import cores
 import bluetooth as blt
 
+
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
 GIRO_MAX_ALINHAR = 90 #70
+
+DIST_EIXO_SENSOR = 45
 
 TAM_QUARTEIRAO = 300
 TAM_BLOCO = TAM_QUARTEIRAO//2
@@ -32,23 +35,17 @@ DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
 DIST_VERDE_CAÇAMBA = 73
 
-DISTS_CAÇAMBAS = [DIST_BORDA_CAÇAMBA + TAM_CAÇAMBA*i + DIST_CAÇAMBA*i for i in range(NUM_CAÇAMBAS)]
+DISTS_CAÇAMBAS = [ DIST_BORDA_CAÇAMBA +
+                   TAM_CAÇAMBA*i + DIST_CAÇAMBA*i
+                   for i in range(NUM_CAÇAMBAS) ]
 
 PISTA_TODA = TAM_QUARTEIRAO*6
-
-DIST_EIXO_SENSOR = 45
-
 
 
 #! checar stall: jogar exceção
 #! checar cor errada no azul
 #! tem um lugar começo do achar azul que tem que dar ré
 
-def ASSERT(cond, texto=None): #! só printar e retornar bool
-    if texto:
-        assert cond, texto
-    else:
-        assert cond
 
 def setup():
     global hub, rodas
@@ -68,8 +65,8 @@ def setup():
         hub.light.blink(Color.RED, [100,50,200,100])
     blt.init(hub)
 
-    hub.display.orientation(Side.BOTTOM)
-    hub.system.set_stop_button((Button.CENTER, Button.BLUETOOTH))
+    hub.display.orientation(Side.BOTTOM) #!
+    hub.system.set_stop_button(Button.CENTER)
 
     orientacao_estimada = ""
 
@@ -82,7 +79,7 @@ def setup():
     rodas = DriveBase(roda_esq, roda_dir,
                       wheel_diameter=88, axle_track=145.5) #! recalibrar
 
-    botao_calibrar = Button.CENTER
+    botao_calibrar = Button.BLUETOOTH
 
     rodas_conf_padrao = rodas.settings() #! CONSTANTIZAR
     vel_padrao     = rodas_conf_padrao[0]
@@ -90,6 +87,38 @@ def setup():
     vels_padrao = vel_padrao, vel_ang_padrao
     
     return hub
+
+def main(hub):
+    global orientacao_estimada
+    if deve_calibrar():
+        mapa_hsv = menu_calibracao(hub,
+                                   sensor_cor_esq,
+                                   sensor_cor_dir)
+        cores.repl_calibracao(mapa_hsv)#, lado="esq")
+
+    blt.resetar_garra(hub)
+
+    caçambas = posicionamento_inicial(hub)
+    cor, xy = procura_inicial(hub, 00, caçambas)
+    coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
+    procura(hub)
+
+def test(hub):
+    ... # testar coisas aqui sem mudar o resto do código
+
+
+def LOG(*args, print=print, **kwargs):
+    print("cabeça:", *args, **kwargs)
+
+def ERRO(*args, bipar=True):
+    from lib.bipes import bipe_falha
+    LOG("ERRO:", *args); bipe_falha(hub)
+
+def ASSERT(cond, texto=None):
+    if DEBUG: assert cond, texto
+    elif not cond:
+        ERRO(f"assert '{texto}' falhou", bipar=DEBUG)
+    return cond
 
 
 class mudar_velocidade():
@@ -129,7 +158,7 @@ def dar_meia_volta():
     rodas.turn(180)
 
     orientacao_estimada = inverte_orientacao()
-    print(f"dar_meia_volta: {orientacao_estimada=}")
+    LOG(f"dar_meia_volta: {orientacao_estimada=}")
     
 def virar_direita():
     global orientacao_estimada
@@ -139,7 +168,7 @@ def virar_direita():
     elif orientacao_estimada == "S": orientacao_estimada = "O"
     elif orientacao_estimada == "L": orientacao_estimada = "S"
     elif orientacao_estimada == "O": orientacao_estimada = "N"
-    print(f"virar_direita: {orientacao_estimada=}")
+    LOG(f"virar_direita: {orientacao_estimada=}")
 
 def virar_esquerda():
     global orientacao_estimada
@@ -149,7 +178,7 @@ def virar_esquerda():
     elif orientacao_estimada == "S": orientacao_estimada = "L"
     elif orientacao_estimada == "L": orientacao_estimada = "N"
     elif orientacao_estimada == "O": orientacao_estimada = "S"
-    print(f"virar_esquerda: {orientacao_estimada=}")
+    LOG(f"virar_esquerda: {orientacao_estimada=}")
 
 DIST_PARAR=0.4 #! checar valor
 def parar():
@@ -165,7 +194,7 @@ def dar_re(dist):
 
 def dar_re_meio_quarteirao():
     dar_re(TAM_BLOCO - DIST_EIXO_SENSOR)
-    print("dar_re_meio_quarteirão: ré")
+    LOG("dar_re_meio_quarteirão: ré")
 
 #! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
 
@@ -178,7 +207,7 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
 def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     #! usar verificar_cor em vez disso?
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
-    print(f"ver_não_verde: {esq}, {dir}")
+    LOG(f"ver_não_verde: {esq}, {dir}")
     return ((not cores.area_livre_unificado(*esq) or not cores.area_livre_unificado(*dir)),
             esq, dir)
 
@@ -219,10 +248,10 @@ def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
         elif res == frac: return False, extra
         elif res == neut: continue
         elif res == 0:
-            print("andar_ate_cor: andou demais")
+            LOG("andar_ate_bool: andou demais")
             return False, (None,) #ou(res, extra)
         else: 
-            print(res)
+            LOG(f"andar_ate_bool: {res}")
             assert False
 
 def cor_final(retorno):
@@ -257,34 +286,34 @@ def alinha_parede(vel, vel_ang, giro_max=45,
         parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO)
         if not parou:
             (dist,) = extra
-            print(f"alinha_parede: reto pista {dist}")
+            LOG(f"alinha_parede: reto pista {dist}")
             return False, extra # viu só branco, não sabemos se tá alinhado
     
         (esq, dir) = extra
         if  alinhado_parede(esq, dir):
-            print(f"alinha_parede: reto não pista {esq}, {dir}")
+            LOG(f"alinha_parede: reto não pista {esq}, {dir}")
             return True, extra
         elif not _cor_unificado(*dir):
-            print(f"alinha_parede: torto pra direita {esq}, {dir}")
+            LOG(f"alinha_parede: torto pra direita {esq}, {dir}")
             GIRO = giro_max
         elif not _cor_unificado(*esq):
-            print(f"alinha_parede: torto pra esquerda {esq}, {dir}")
+            LOG(f"alinha_parede: torto pra esquerda {esq}, {dir}")
             GIRO = -giro_max
 
         rodas.turn(GIRO, wait=False) #! fazer gira_ate
-        print("alinha_parede: girando")
+        LOG("alinha_parede: girando")
         while not rodas.done():
             extra = cores.todas(sensor_cor_esq, sensor_cor_dir)
             esq, dir = extra
             if  alinhado_parede(esq, dir):
-                print(f"alinha_parede: alinhado parede: {esq}, {dir}")
+                LOG(f"alinha_parede: alinhado parede: {esq}, {dir}")
                 parar_girar()
                 return True, extra # deve tar alinhado
             elif alinhado_pista(esq, dir):
-                print(f"alinha_parede: alinhado pista: {esq}, {dir}")
+                LOG(f"alinha_parede: alinhado pista: {esq}, {dir}")
                 parar_girar()
                 return False, extra #provv alinhado, talvez tentar de novo
-        print(f"alinha_parede: girou tudo, {esq}, {dir}")
+        LOG(f"alinha_parede: girou tudo, {esq}, {dir}")
         return False, extra # girou tudo, não sabemos se tá alinhado
 
 #! tem que retornar a cor
@@ -361,25 +390,37 @@ def seguir_caminho(pos, obj): #! lidar com outras coisas
 
     def interpretar_caminho(caminho): #! receber orientação?
         for mov in caminho: #! yield orientação nova?
-            print(f"seguir_caminho: {tipo_movimento(mov)}")
+            LOG(f"seguir_caminho: {tipo_movimento(mov)}")
             interpretar_movimento(mov)
             yield rodas.distance()
 
     movs, ori_final = achar_movimentos(pos, obj, orientacao_estimada)
-    #print(*(tipo_movimento(mov) for mov in movs))
+    #LOG(*(tipo_movimento(mov) for mov in movs))
 
     for _ in interpretar_caminho(movs):
         while not rodas.done(): pass
         
     while orientacao_estimada != ori_final:
-        print(f"{orientacao_estimada=}, {ori_final=}")
+        LOG(f"{orientacao_estimada=}, {ori_final=}")
         virar_direita()
 
+def deve_calibrar():
+    #! levar os dois sensores em consideração separadamente
+    crono = StopWatch()
+    while crono.time() < 100:
+        botões = hub.buttons.pressed()
+        if botao_calibrar in botões: return True
+    return False
+
 def menu_calibracao(hub, sensor_esq, sensor_dir,
-                                     botao_parar=Button.BLUETOOTH,
-                                     botao_aceitar=Button.CENTER,
-                                     botao_anterior=Button.LEFT,
-                                     botao_proximo=Button.RIGHT):
+                         botao_parar=Button.BLUETOOTH,
+                         botao_aceitar=Button.CENTER,
+                         botao_anterior=Button.LEFT,
+                         botao_proximo=Button.RIGHT):
+    hub.system.set_stop_button(
+        (Button.CENTER, Button.BLUETOOTH)
+    )
+    bipe_calibracao(hub)
     mapa_hsv = cores.mapa_hsv.copy()
 
     selecao = 0
@@ -403,7 +444,10 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
             wait(150)
         elif botao_parar   in botões:
             wait(100)
-            return mapa_hsv
+            break
+
+    hub.system.set_stop_button(Button.CENTER)
+    return mapa_hsv
 
 def posicionamento_inicial(hub):
     global orientacao_estimada
@@ -434,7 +478,7 @@ def procura_inicial(hub, xy, caçambas): #! considerar inimigo
     while i == 2:
         x += 2 #! para procura genérico, considerar orientação
         i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
-    assert i == 1
+    ASSERT(i == 1, "procura inicial: deveria ser impossível andar demais")
 
     cor = extra
     if cor in caçambas:
@@ -466,12 +510,12 @@ def alinhar_caçambas(orientacao_estimada):
     if (orientacao_estimada == "N"): virar_esquerda()
 
     andar_ate_bool(ver_nao_verde)
-    print("alinhar_caçambas: viu não verde (espera amarelo)")
+    LOG("alinhar_caçambas: viu não verde (espera amarelo)")
     dar_re_meio_quarteirao()
 
     virar_esquerda()
     andar_ate_bool(ver_nao_verde)
-    print("alinhar_caçambas: viu não verde (espera vermelho)")
+    LOG("alinhar_caçambas: viu não verde (espera vermelho)")
 
     dar_re(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR)
     dar_meia_volta()
@@ -532,27 +576,6 @@ def salvar_caçambas():
     alinhar_caçambas(orientacao_estimada)
     cores_caçambas(caçambas, sensor_cor)
 
-def main(hub):
-    global orientacao_estimada
-    crono = StopWatch()
-    while crono.time() < 100: #! ativar calibração quando for usar
-        botões = hub.buttons.pressed()
-        if botao_calibrar in botões:
-            bipe_calibracao(hub)
-            #! levar os dois sensores em consideração separadamente
-            mapa_hsv = menu_calibracao(hub, sensor_cor_esq, sensor_cor_dir)
-            cores.repl_calibracao(mapa_hsv)#, lado="esq")
-            return
-    hub.system.set_stop_button((Button.BLUETOOTH,))
-
-    blt.resetar_garra(hub)
-    
-    caçambas = posicionamento_inicial(hub)
-    cor, xy = procura_inicial(hub, 00, caçambas)
-    coloca_cubo_na_caçamba(hub, cor, xy, caçambas)
-    procura(hub)
-
-
 def teste_ver_caçambas():
     salvar_caçambas()
 
@@ -576,16 +599,14 @@ def teste_colocar_caçambas():
     blt.resetar_garra(hub)
 
 
-def test(hub):
-    ... # testar coisas aqui sem mudar o resto do código
-    posicionamento_inicial(hub)
-
 
 if __name__ == "__main__":
     from lib.bipes import bipe_inicio, bipe_final, bipe_falha
 
     try:    TESTE == True
     except: TESTE = False
+    try:    DEBUG == True
+    except: DEBUG = False
 
     hub = setup()
     try:
