@@ -58,15 +58,15 @@ class Hori(Rua):
 
 
 mapa = [
-    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
-    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
-    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
-    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
-    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
-    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
-    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
-    [Vert(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
-    [Safe(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Safe(estado=estado_celula.LIVRE), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(estado=estado_celula.LIVRE), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(estado=estado_celula.LIVRE), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(estado=estado_celula.LIVRE), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(estado=estado_celula.LIVRE), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(estado=estado_celula.LIVRE), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(estado=estado_celula.LIVRE), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
+    [Vert(estado=estado_celula.LIVRE), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert(), Nada(), Vert()],
+    [Safe(estado=estado_celula.LIVRE), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
 ]
 
 def coloca_obstaculo(pos):
