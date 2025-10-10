@@ -14,10 +14,45 @@ cor = Enum("cor", ["NENHUMA",
                    "BRANCO",
                    "MARROM"])
 
+class Cor:
+    def __init__(self, color=None, cor=None, hsv=None):
+        self.color = color or cor2Color(cor)
+        self.cor   = cor   or Color2cor(color)
+        self.hsv   = hsv   or Color2tuple(color)
+
+    @classmethod()
+    def ler(cls, sensor_esq, sensor_dir):
+        return cls(*todas(sensor_esq, sensor_dir))
+
+    def __eq__(self, other): #! testar
+        if isinstance(other, Color):
+            if other == self.color: return True
+        if isinstance(other, tuple):
+            if other == self.hsv: return True
+        if isinstance(other, int): #! enum cor
+            if other == self.cor: return True
+        #! retornar resultado direto?
+
+        #! será que devia confiar no identificar?
+        return ((other == self.color) or
+                (other == self.hsv) or
+                (identificar(other) == identificar(self.hsv))
+
+    def vermelho(self): return (self.color == Color.RED)
+    def verde(self):    return (self.color == Color.GREEN)
+    def branco(self):   return (self.color == Color.WHITE)
+    def preto(self):    return (self.color == Color.PRETO)
+    def azul(self):     return (self.color == Color.BLUE)
+
+    def area_livre(self): return self.verde()
+    def pista(self):      return self.branco() or self.verde()
+    def parede(self):     return self.preto()
+    def beco(self):       return self.vermelho()
+
 def Color2tuple(color):
     return color.h, color.s, color.v
 
-def Color2cor (color):
+def Color2cor(color):
     el = {
            Color2tuple(Color.YELLOW): cor.AMARELO,
            Color2tuple(Color.GREEN ): cor.VERDE, 
@@ -33,16 +68,20 @@ def Color2cor (color):
     else:
         return el
 
-cor2Color = [
-    Color.NONE,
-    Color.BLACK,
-    Color.BLUE,
-    Color.GREEN,
-    Color.YELLOW,
-    Color.RED,
-    Color.WHITE,
-    Color.BROWN,
-]
+def cor2Color(cor):
+    try:
+        return [ Color.NONE,
+                 Color.BLACK,
+                 Color.BLUE,
+                 Color.GREEN,
+                 Color.YELLOW,
+                 Color.RED,
+                 Color.WHITE,
+                 Color.BROWN ][cor]
+    except IndexError:
+        return None
+
+
 #hsv = tuple[float, float, float]
 
 def norm_hsv(hsv):
@@ -156,38 +195,6 @@ def identificar(color, sensor="chao") -> cor: # type: ignore
         hsv = color.h, color.s, color.v
         return identificar_cor(hsv, mapa)
 
-def pista_unificado(color, hsv):
-    deles = (color == Color.WHITE) or (color == Color.GREEN)
-    return deles
-
-def branco_unificado(color, hsv):
-    deles = (color == Color.WHITE)
-    return deles
-
-def area_livre_unificado(color, hsv):
-    deles = (color == Color.GREEN)
-    return deles
-
-def beco_unificado(color, hsv):
-    deles = (color == Color.RED)
-    return deles
-
-def azul_unificado(color, hsv):
-    deles = ((color == Color.BLUE))
-    return deles
-
-def parede_unificado(color, hsv):
-    deles = ((color == Color.BLACK) or
-             (color == Color.NONE ) or
-             (color == Color.YELLOW))
-
-    combinado = (((color == Color.RED) or
-                  (color == Color.BLUE)) and
-                ((identificar(hsv) == cor.PRETO) or
-                 (identificar(hsv) == cor.BRANCO) or
-                 (identificar(hsv) == cor.NENHUMA)))
-    #! checar de novo se precisa do combinado
-    return deles or combinado
 
 def certificar(sensor_dir, sensor_esq, uni, uni2=None) -> bool:
     if uni2 is None:
