@@ -636,8 +636,8 @@ def descobrir_cor_caçambas():
     alinhar_caçambas()
     for i in range(NUM_CAÇAMBAS):
         rodas.straight(TAM_CAÇAMBA)
-        cores_cacambas[i] = blt.ver_cor_caçamba(hub)
-        LOG(f"Cor caçamba: {cores_cacambas[i]}")
+        cores_caçambas[i] = blt.ver_cor_caçamba(hub)
+        LOG(f"Cor caçamba: {cores_caçambas[i]}")
 
 def teste_ver_caçambas(opcao):
     if opcao == 0:
