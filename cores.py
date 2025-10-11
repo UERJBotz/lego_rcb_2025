@@ -14,16 +14,11 @@ cor = Enum("cor", ["NENHUMA",
                    "BRANCO",
                    "MARROM"])
 
-#! o mapa pro identificar tá errado pq a gente mudou a ordem do enum.
-##! deve ter que mudar pra um dicionário
+#! o mapa pro identificar deve tar errado pq a gente mudou a ordem do enum.
+##! talvez tenha que mudar pra um dicionário
 
 class Cor:
     enum = cor
-
-    @classmethod
-    def ler(cls, sensor_esq, sensor_dir):
-        esq, dir = todas(sensor_esq, sensor_dir)
-        return cls(*esq), cls(*dir)
 
     def __init__(self, color=None, hsv=None, cor=None):
         self.color = color or cor2Color(cor)
