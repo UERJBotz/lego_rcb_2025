@@ -49,16 +49,16 @@ $(TESTE_BRACO): braco.py
 # #! if grep -q $< <<<"$(AMPY) ls"; then echo "já tá" fi
 # #! if ! "$(AMPY) get $<"; then echo "não tá" fi
 #! colocar arduino-cli e fazer upload do arduino
-rabo:: firmware/rabo/boot.py
-	$(AMPY) --port /dev/ttyACM0 put $<
-rabo:: firmware/rabo/main.py
-	$(AMPY) --port /dev/ttyACM0 put $<
-rabo:: firmware/rabo/bleradio.py
-	$(AMPY) --port /dev/ttyACM0 put $<
-rabo:: lib/polyfill.py
-	$(AMPY) --port /dev/ttyACM0 put $< $<
+rabo:: rabo.py
+	$(AMPY) --port /dev/ttyACM0 put $< main.py
 rabo:: bluetooth.py
 	$(AMPY) --port /dev/ttyACM0 put $< blt.py
+rabo:: lib/polyfill.py
+	$(AMPY) --port /dev/ttyACM0 put $< $<
+rabo:: firmware/boot.py
+	$(AMPY) --port /dev/ttyACM0 put $<
+rabo:: firmware/bleradio.py
+	$(AMPY) --port /dev/ttyACM0 put $<
 
 
 .PHONY: clean
