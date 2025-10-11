@@ -14,15 +14,30 @@ cor = Enum("cor", ["NENHUMA",
                    "BRANCO",
                    "MARROM"])
 
+#! o mapa pro identificar tá errado pq a gente mudou a ordem do enum.
+##! deve ter que mudar pra um dicionário
+
 class Cor:
-    def __init__(self, color=None, cor=None, hsv=None):
+    enum = cor
+
+    @classmethod
+    def ler(cls, sensor_esq, sensor_dir):
+        esq, dir = todas(sensor_esq, sensor_dir)
+        return cls(*esq), cls(*dir)
+
+    def __init__(self, color=None, hsv=None, cor=None):
         self.color = color or cor2Color(cor)
         self.cor   = cor   or Color2cor(color)
         self.hsv   = hsv   or Color2tuple(color)
 
-    @classmethod()
-    def ler(cls, sensor_esq, sensor_dir):
-        return cls(*todas(sensor_esq, sensor_dir))
+        if self.hsv:
+            self.h, self.s, self.v = self.hsv
+        else:
+            self.h, self.s, self.v = None, None, None
+
+    def __iter__(self): # para poder fazer *Cor
+        yield self.color
+        yield self.hsv
 
     def __eq__(self, other): #! testar
         if isinstance(other, Color):
@@ -31,12 +46,14 @@ class Cor:
             if other == self.hsv: return True
         if isinstance(other, int): #! enum cor
             if other == self.cor: return True
-        #! retornar resultado direto?
+        #! retornar comparação direto?
 
         #! será que devia confiar no identificar?
-        return ((other == self.color) or
-                (other == self.hsv) or
-                (identificar(other) == identificar(self.hsv))
+        return ((other == self.color) or (other == self.hsv) or
+                (identificar(other) == identificar(self.hsv)))
+
+    def __str__(self):
+        return f"{self.enum(self.cor)}[{self.h}, {self.s}, {self.v}]"
 
     def vermelho(self): return (self.color == Color.RED)
     def verde(self):    return (self.color == Color.GREEN)
@@ -49,37 +66,34 @@ class Cor:
     def parede(self):     return self.preto()
     def beco(self):       return self.vermelho()
 
-def Color2tuple(color):
-    return color.h, color.s, color.v
+def Color2tuple(color): #! falhar mais alto
+    try:    return color.h, color.s, color.v
+    except: return None #! except
 
-def Color2cor(color):
-    el = {
-           Color2tuple(Color.YELLOW): cor.AMARELO,
-           Color2tuple(Color.GREEN ): cor.VERDE, 
-           Color2tuple(Color.BLUE  ): cor.AZUL,
-           Color2tuple(Color.RED   ): cor.VERMELHO,
-           Color2tuple(Color.BROWN ): cor.MARROM,
-           Color2tuple(Color.BLACK ): cor.PRETO,
-           Color2tuple(Color.WHITE ): cor.BRANCO,
-         }.get(Color2tuple(color))
-    if el is None:
-        print(f"cor inválida: {Color2tuple(color)}")
-        return cor.NENHUMA
-    else:
-        return el
+def Color2cor(color): #! falhar mais alto
+    res = {
+        Color2tuple(Color.BLACK ): cor.PRETO,
+        Color2tuple(Color.BLUE  ): cor.AZUL,
+        Color2tuple(Color.GREEN ): cor.VERDE, 
+        Color2tuple(Color.YELLOW): cor.AMARELO,
+        Color2tuple(Color.RED   ): cor.VERMELHO,
+        Color2tuple(Color.WHITE ): cor.BRANCO,
+        Color2tuple(Color.BROWN ): cor.MARROM,
+    }.get(Color2tuple(color))
+    return res if res is not None else cor.NENHUMA
 
-def cor2Color(cor):
-    try:
-        return [ Color.NONE,
-                 Color.BLACK,
-                 Color.BLUE,
-                 Color.GREEN,
-                 Color.YELLOW,
-                 Color.RED,
-                 Color.WHITE,
-                 Color.BROWN ][cor]
-    except IndexError:
-        return None
+def cor2Color(cor): #! falhar mais alto
+    res = {
+        cor.NENHUMA:  Color.NONE,
+        cor.PRETO:    Color.BLACK,
+        cor.AZUL:     Color.BLUE,
+        cor.VERDE:    Color.GREEN,
+        cor.AMARELO:  Color.YELLOW,
+        cor.VERMELHO: Color.RED,
+        cor.BRANCO:   Color.WHITE,
+        cor.MARROM:   Color.BROWN
+    }.get(cor)
+    return res
 
 
 #hsv = tuple[float, float, float]
@@ -96,8 +110,8 @@ def unnorm_hsv(hsv):
     return (h*360, s*100, v*100)
 
 def todas(sensor_esq, sensor_dir) -> tuple[tuple, tuple]:
-    esq = sensor_esq.color(), sensor_esq.hsv()
-    dir = sensor_dir.color(), sensor_dir.hsv()
+    esq = Cor(sensor_esq.color(), sensor_esq.hsv())
+    dir = Cor(sensor_dir.color(), sensor_dir.hsv())
     return (esq, dir)
 
 def iter_coleta(hub, botao_parar, sensor):
@@ -197,11 +211,10 @@ def identificar(color, sensor="chao") -> cor: # type: ignore
 
 
 def certificar(sensor_dir, sensor_esq, uni, uni2=None) -> bool:
-    if uni2 is None:
-        uni2 = uni
+    if uni2 is None: uni2 = uni
     esq, dir = todas(sensor_esq, sensor_dir)
 
-    res = uni(*esq) and uni2(*dir)
+    res = uni(esq) and uni2(dir)
     print(f"certificar_cor: {res=}")
 
     return res
