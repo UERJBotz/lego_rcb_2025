@@ -13,9 +13,11 @@ from lib.caminhos import coloca_obstaculo, tira_obstaculo, pegar_celulas_incerta
 
 from urandom import choice
 
-import cores
-import gui
 import bluetooth as blt
+import gui
+import cores
+
+from cores import Cor
 
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
@@ -131,21 +133,10 @@ def main(hub):
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
     global orientacao_estimada, pos_estimada, cores_caçambas
-    cores_caçambas = [cores.cor.VERMELHO, cores.cor.AMARELO, cores.cor.AZUL, cores.cor.VERDE, cores.cor.PRETO]
-    #main(hub)
-
-    blt.resetar_garra(hub)
-    blt.abaixar_garra(hub)
-
-    pos_estimada = (0,0)
-    orientacao_estimada = "L"
-    achar_nao_verde_alinhado()
-    rodas.straight(DIST_EIXO_SENSOR)
-    cor, pos_estimada = procura(hub, pos_estimada, cores_caçambas)
-    caminho_volta = achar_caminhos(pos_estimada, (0,0))
-    seguir_caminho(caminho_volta)
-    colocar_cubo_na_caçamba(cor)
-
+    cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
+    teste_ver_caçambas(1)
+    return
+    main(hub)
 
 
 def LOG(*args, print=print, **kwargs):
@@ -240,17 +231,13 @@ def dar_re_meio_quarteirao():
 #! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
 
 def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
-    #! usar verificar_cor em vez disso?
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
-    return ((not cores.pista_unificado(*esq) or not cores.pista_unificado(*dir)),
-            esq, dir)
+    return ((not esq.pista() or not dir.pista()), esq, dir)
 
 def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
-    #! usar verificar_cor em vez disso?
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
     LOG(f"ver_não_verde: {esq}, {dir}")
-    return ((not cores.area_livre_unificado(*esq) or not cores.area_livre_unificado(*dir)),
-            esq, dir)
+    return ((not esq.area_livre() or not dir.area_livre()), esq, dir)
 
 def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
     def f():
@@ -314,17 +301,18 @@ def achar_nao_verde_alinhado():
 
 
 def alinha_parede(vel, vel_ang, giro_max=45,
-                  _cor_unificado=cores.area_livre_unificado,
-                  _ver_nao_x=ver_nao_verde
+                  func_cor_pista=Cor.area_livre,
+                  func_parar_andar=ver_nao_verde
                   ) -> bool:
-    desalinhado_branco = lambda esq, dir: cores.branco_unificado(*esq)  ^  cores.branco_unificado(*dir)
-    alinhado_nao_pista = lambda esq, dir: (not _cor_unificado(*esq))   and (not _cor_unificado(*dir))
+    desalinhado_branco = lambda esq, dir: Cor.branco(esq) ^ Cor.branco(dir)
+    alinhado_nao_pista = lambda esq, dir: ((not func_cor_pista(esq)) and
+                                           (not func_cor_pista(dir)))
     
-    alinhado_pista  = lambda esq, dir: _cor_unificado(*esq) and _cor_unificado(*dir)
+    alinhado_pista  = lambda esq, dir: func_cor_pista(esq) and func_cor_pista(dir)
     alinhado_parede = lambda esq, dir: alinhado_nao_pista(esq, dir) and not desalinhado_branco(esq, dir)
 
     with mudar_velocidade(rodas, vel, vel_ang):
-        parou, extra = andar_ate_idx(_ver_nao_x, dist_max=TAM_BLOCO)
+        parou, extra = andar_ate_idx(func_parar_andar, dist_max=TAM_BLOCO)
         if not parou:
             (dist,) = extra
             LOG(f"alinha_parede: reto pista {dist}")
@@ -334,10 +322,10 @@ def alinha_parede(vel, vel_ang, giro_max=45,
         if  alinhado_parede(esq, dir):
             LOG(f"alinha_parede: reto não pista {esq}, {dir}")
             return True, extra
-        elif not _cor_unificado(*dir):
+        elif not func_cor_pista(dir):
             LOG(f"alinha_parede: torto pra direita {esq}, {dir}")
             GIRO = giro_max
-        elif not _cor_unificado(*esq):
+        elif not func_cor_pista(esq):
             LOG(f"alinha_parede: torto pra esquerda {esq}, {dir}")
             GIRO = -giro_max
 
@@ -458,6 +446,7 @@ def deve_calibrar():
         if botao_calibrar in botões: return True
     return False
 
+#! como dito em cores, isso deve tar quebrado por conta da ordem do enum
 def menu_calibracao(hub, sensor_esq, sensor_dir,
                          botao_parar=Button.BLUETOOTH,
                          botao_aceitar=Button.CENTER,
@@ -473,13 +462,13 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
 
     wait(150)
     while True:
-        botões = gui.tela_escolher_cor(hub, cores.cor, selecao)
+        botões = gui.tela_escolher_cor(hub, Cor.enum, selecao)
 
         if   botao_proximo  in botões:
-            selecao = (selecao + 1) % len(cores.cor)
+            selecao = (selecao + 1) % len(Cor.enum)
             wait(100)
         elif botao_anterior in botões:
-            selecao = (selecao - 1) % len(cores.cor)
+            selecao = (selecao - 1) % len(Cor.enum)
             wait(100)
 
         elif botao_aceitar in botões:
@@ -504,10 +493,10 @@ def posicionamento_inicial(hub):
 
         bipe_separador(hub)
         dar_re_meio_quarteirao()
-        if   cores.azul_unificado(*esq) and cores.azul_unificado(*dir):
+        if   esq.azul() and dir.azul():
             orientacao_estimada = "L"
             virar_esquerda()
-        elif cores.beco_unificado(*esq) and cores.beco_unificado(*dir):
+        elif esq.beco() and dir.beco():
             viu_vermelho = True
             virar_direita()
         else: # amarelo assumido
@@ -565,7 +554,7 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
     margem      = TAM_CUBO//2 if max_cubos != 1 else (TAM_CUBO*3)//2
     espaçamento = TAM_CUBO    if max_cubos == 2 else 0
 
-    ASSERT(cor_cubo != cores.cor.NENHUMA)
+    ASSERT(cor_cubo != Cor.enum.NENHUMA)
     blt.levantar_garra(hub)
     alinhar_caçambas()
     for i, (cor, dist) in enumerate(zip(cores_caçambas, DISTS_CAÇAMBAS)):
@@ -615,7 +604,7 @@ def procura(hub, pos_estimada, cores_caçambas):
         rodas.straight(DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
 
         cor = blt.ver_cor_cubo(hub)
-        if cor == cores.cor.NENHUMA: # não tem cubo
+        if cor == Cor.enum.NENHUMA: # não tem cubo
             LOG("procura: cel livre")
             tira_obstaculo(cel_destino)
             rodas.straight(TAM_BLOCO - DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
@@ -623,7 +612,7 @@ def procura(hub, pos_estimada, cores_caçambas):
             continue
         if cor not in cores_caçambas:
             LOG(f"procura: cubo desconhecido cor {cor}")
-            if cor == cores.cor.BRANCO:
+            if cor == Cor.enum.BRANCO:
                 bipe_cabeca(hub) #! fazer fora?
             coloca_obstaculo(cel_destino)
             dar_re(DIST_CRUZAMENTO_CUBO)
@@ -642,13 +631,13 @@ def procura(hub, pos_estimada, cores_caçambas):
 def descobrir_cor_caçambas():
     global cores_caçambas
     if not cores_caçambas:
-        cores_caçambas = [cores.cor.NENHUMA for i in range(NUM_CAÇAMBAS)]
+        cores_caçambas = [Cor.enum.NENHUMA for i in range(NUM_CAÇAMBAS)]
 
     alinhar_caçambas()
     for i in range(NUM_CAÇAMBAS):
         rodas.straight(TAM_CAÇAMBA)
-        cores_cacambas[i] = blt.ver_cor_caçamba(hub)
-        LOG(f"Cor caçamba: {cores_cacambas[i]}")
+        cores_caçambas[i] = blt.ver_cor_caçamba(hub)
+        LOG(f"Cor caçamba: {cores_caçambas[i]}")
 
 def teste_ver_caçambas(opcao):
     if opcao == 0:
@@ -658,7 +647,7 @@ def teste_ver_caçambas(opcao):
     if opcao == 1:
         while True:
             cor = blt.ver_cor_caçamba(hub)
-            print(cores.cor(cor))
+            print(Cor.enum(cor))
 
 
 if __name__ == "__main__":
