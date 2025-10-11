@@ -128,6 +128,8 @@ def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
     global orientacao_estimada, pos_estimada, cores_caçambas
     cores_caçambas = [cores.cor.VERMELHO, cores.cor.AMARELO, cores.cor.AZUL, cores.cor.VERDE, cores.cor.PRETO]
+    teste_ver_caçambas(1)
+    return
     main(hub)
 
 
@@ -611,7 +613,7 @@ def procura(hub, pos_estimada, cores_caçambas):
 
     raise SucessoOuCatástrofe()
 
-def salvar_caçambas():
+def descobrir_cor_caçambas():
     global cores_caçambas
     if not cores_caçambas:
         cores_caçambas = [cores.cor.NENHUMA for i in range(NUM_CAÇAMBAS)]
@@ -619,19 +621,18 @@ def salvar_caçambas():
     alinhar_caçambas()
     for i in range(NUM_CAÇAMBAS):
         rodas.straight(TAM_CAÇAMBA)
-        cores_cacambas[i] = blt.ver_cor_caçamba()
+        cores_cacambas[i] = blt.ver_cor_caçamba(hub)
         LOG(f"Cor caçamba: {cores_cacambas[i]}")
 
 def teste_ver_caçambas(opcao):
     if opcao == 0:
         global orientacao_estimada 
         orientacao_estimada = "L"
-        salvar_caçambas()
+        descobrir_cor_caçambas()
     if opcao == 1:
         while True:
             cor = blt.ver_cor_caçamba(hub)
-            print(cor)
-            print(cores.cor2Color[cor])
+            print(cores.cor(cor))
 
 
 if __name__ == "__main__":
@@ -639,6 +640,8 @@ if __name__ == "__main__":
 
     try:    TESTE == True
     except: TESTE = False
+    try:    DEBUG == True
+    except: DEBUG = False
 
     hub = setup()
     try:
