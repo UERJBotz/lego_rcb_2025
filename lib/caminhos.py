@@ -298,14 +298,14 @@ def caminho_relativo(caminho_absoluto: list[tuple[int, int]]):
     return direcoes #! checar no chamador se é vazio
 
 tipo_movimento = Enum("tipo_movimento",
-                      ["FRENTE", "DIREITA_FRENTE", "ESQUERDA_FRENTE", "TRAS", "DIREITA", "ESQUERDA"])
+                      ["FRENTE", "DIREITA", "ESQUERDA", "TRAS"])
 
 def prox_movimento(ori_ini: tipo_movimento, ori_final: tipo_movimento): #type: ignore
         diferenca = (ori_final - ori_ini) % 4
-        if   diferenca == 0: return tipo_movimento.FRENTE
-        elif diferenca == 1: return tipo_movimento.DIREITA_FRENTE
-        elif diferenca == 2: return tipo_movimento.TRAS
-        elif diferenca == 3: return tipo_movimento.ESQUERDA_FRENTE
+        if   diferenca == 0: return (tipo_movimento.FRENTE,)
+        elif diferenca == 1: return (tipo_movimento.DIREITA,  tipo_movimento.FRENTE,)
+        elif diferenca == 2: return (tipo_movimento.TRAS,     tipo_movimento.FRENTE,)
+        elif diferenca == 3: return (tipo_movimento.ESQUERDA, tipo_movimento.FRENTE,)
         else:
             assert False
 
@@ -328,7 +328,7 @@ def movimento_relativo(cam_rel, orientacao_ini):
 
         nova_idx_orientacao = posicao_parede[nova_orientacao]
 
-        movimentos.append(
+        movimentos.extend(
             prox_movimento(idx_orientacao, nova_idx_orientacao)
         )
 

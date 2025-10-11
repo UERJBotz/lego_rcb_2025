@@ -61,7 +61,10 @@ def main(hub):
         antes, cmd = cmd, hub.ble.observe(blt.TX_CABECA)
         if cmd is not None:
             comando, *args = cmd
-        else: continue
+        else:
+            if antes != None:
+                LOG("recebendo nada")
+            continue
 
         if cmd != antes:
             LOG(f"{blt.comando_bt(comando)}{args}")

@@ -134,8 +134,6 @@ def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
     global orientacao_estimada, pos_estimada, cores_caçambas
     cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
-    teste_ver_caçambas(1)
-    return
     main(hub)
 
 
@@ -250,15 +248,16 @@ def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo(hub)
     return cor != cores.NENHUMA
 
-def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
+def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA,
+                                           ao_parar=parar, stop=Stop.HOLD) -> tuple[bool, tuple[Any]]: # type: ignore
     rodas.reset()
-    rodas.straight(dist_max, wait=False)
+    rodas.straight(dist_max, wait=False, then=stop)
     while not rodas.done():
         for i, cond_parada in enumerate(conds_parada):
             chegou, *retorno = cond_parada()
             if not chegou: continue
             else:
-                parar()
+                ao_parar()
                 return i+1, retorno
     return 0, (rodas.distance(),)
 
@@ -400,24 +399,17 @@ def alinha_re(max_tentativas=3,
                 rodas.turn(ang)
     return extra
 
-def seguir_caminho(caminho): #! lidar com outras coisas
-    def interpretar_movimento(mov):
-        #! fazer run length encoding aqui
+def seguir_caminho(caminho): #! lidar com coisas no caminho
+    def interpretar_movimento(mov): #! fazer run length encoding aqui
         if   mov == tipo_movimento.FRENTE:
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
+            rodas.straight(TAM_BLOCO, then=Stop.COAST_SMART)
         elif mov == tipo_movimento.TRAS:
             dar_meia_volta()
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
-        elif mov == tipo_movimento.ESQUERDA_FRENTE:
-            virar_esquerda()
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
-        elif mov == tipo_movimento.DIREITA_FRENTE:
-            virar_direita()
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
         elif mov == tipo_movimento.ESQUERDA:
             virar_esquerda()
         elif mov == tipo_movimento.DIREITA:
             virar_direita()
+
 
     def interpretar_caminho(caminho): #! receber orientação?
         for mov in caminho: #! yield orientação nova?
