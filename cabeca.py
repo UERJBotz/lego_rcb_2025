@@ -232,6 +232,10 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
     return ((not esq.pista() or not dir.pista()), esq, dir)
 
+def ver_nao_branco() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]:
+    esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
+    return ((not esq.branco() or not dir.branco()), esq, dir)
+
 def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
     LOG(f"ver_não_verde: {esq}, {dir}")
@@ -296,12 +300,25 @@ def achar_nao_verde() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
 def achar_nao_verde_alinhado():
     achar_nao_verde()
     dar_re(TAM_FAIXA) #!//2?
-    return alinhar()#alinha_giro() #
+    return alinhar()#alinha_giro() 
+
+def alinha_parede_ou_branco(vel, vel_ang, giro_max=45,
+                            func_cor_pista=Cor.branco,
+                            func_parar_andar=ver_nao_branco,
+                            ) -> bool:
+    alinha_parede(vel, vel_ang, giro_max=giro_max,
+                                func_cor_pista=func_cor_pista,
+                                func_parar_andar=func_parar_andar,
+                                alinha_com_pista=True,
+                                dist_max=TAM_BLOCO)
+
 
 
 def alinha_parede(vel, vel_ang, giro_max=45,
                   func_cor_pista=Cor.area_livre,
-                  func_parar_andar=ver_nao_verde
+                  func_parar_andar=ver_nao_verde,
+                  alinha_com_pista=False,
+                  dist_max=TAM_BLOCO
                   ) -> bool:
     desalinhado_branco = lambda esq, dir: Cor.branco(esq) ^ Cor.branco(dir)
     alinhado_nao_pista = lambda esq, dir: ((not func_cor_pista(esq)) and
@@ -311,7 +328,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
     alinhado_parede = lambda esq, dir: alinhado_nao_pista(esq, dir) and not desalinhado_branco(esq, dir)
 
     with mudar_velocidade(rodas, vel, vel_ang):
-        parou, extra = andar_ate_idx(func_parar_andar, dist_max=TAM_BLOCO)
+        parou, extra = andar_ate_idx(func_parar_andar, dist_max=dist_max)
         if not parou:
             (dist,) = extra
             LOG(f"alinha_parede: reto pista {dist}")
@@ -340,7 +357,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
             elif alinhado_pista(esq, dir):
                 LOG(f"alinha_parede: alinhado pista: {esq}, {dir}")
                 parar_girar()
-                return False, extra #provv alinhado, talvez tentar de novo
+                return alinha_com_pista, extra #provv alinhado, talvez tentar de novo
         LOG(f"alinha_parede: girou tudo, {esq}, {dir}")
         return False, extra # girou tudo, não sabemos se tá alinhado
 
@@ -362,6 +379,23 @@ def alinha_giro(max_tentativas=4, virar=True, #! virar=False?
         else:
             if virar: virar_direita() #! testar agora
             continue
+    return extra
+
+def alinhar_grade(max_tentativas=4, virar=True, #! virar=False?
+                              vel=VEL_ALINHAR, vel_ang=VEL_ANG_ALINHAR,
+                              giro_max=GIRO_MAX_ALINHAR) -> None:
+    for _ in range(max_tentativas):
+        rodas.reset()
+
+        alinhou, extra = alinha_parede_ou_branco(vel, vel_ang, giro_max=giro_max)
+        ang  = rodas.angle()
+        dist = rodas.distance()
+        if alinhou: return extra
+        else:
+            with mudar_velocidade(rodas, 80, 30):
+                rodas.turn(-ang)
+                dar_re(dist)
+                rodas.turn(ang)
     return extra
 
 def alinhar(max_tentativas=4, virar=True, #! virar=False?
@@ -402,7 +436,7 @@ def alinha_re(max_tentativas=3,
 def seguir_caminho(caminho): #! lidar com coisas no caminho
     def interpretar_movimento(mov): #! fazer run length encoding aqui
         if   mov == tipo_movimento.FRENTE:
-            rodas.straight(TAM_BLOCO, then=Stop.COAST_SMART)
+            alinhar_grade(dist_max=TAM_BLOCO)
         elif mov == tipo_movimento.TRAS:
             dar_meia_volta()
         elif mov == tipo_movimento.ESQUERDA:
