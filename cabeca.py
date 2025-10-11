@@ -21,11 +21,13 @@ VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
 GIRO_MAX_ALINHAR = 90 #70
 
-DIST_EIXO_SENSOR = 45
-
 TAM_QUARTEIRAO = 300
 TAM_BLOCO = TAM_QUARTEIRAO//2
 TAM_FAIXA = 20
+
+DIST_EIXO_SENSOR = 45
+DIST_EIXO_SENSOR_FRENTE = 110
+DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
 
 NUM_CAÇAMBAS = 5
 TAM_CAÇAMBA = 160
@@ -119,6 +121,8 @@ def main(hub):
         descobrir_cor_caçambas()
     pos_estimada = (0,0)
 
+    achar_nao_verde_alinhado()
+    rodas.straight(DIST_EIXO_SENSOR)
     cor, pos_estimada = procura(hub, pos_estimada, cores_caçambas)
     caminho_volta = achar_caminhos(pos_estimada, (0,0))
     seguir_caminho(caminho_volta)
@@ -128,9 +132,20 @@ def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
     global orientacao_estimada, pos_estimada, cores_caçambas
     cores_caçambas = [cores.cor.VERMELHO, cores.cor.AMARELO, cores.cor.AZUL, cores.cor.VERDE, cores.cor.PRETO]
-    teste_ver_caçambas(1)
-    return
-    main(hub)
+    #main(hub)
+
+    blt.resetar_garra(hub)
+    blt.abaixar_garra(hub)
+
+    pos_estimada = (0,0)
+    orientacao_estimada = "L"
+    achar_nao_verde_alinhado()
+    rodas.straight(DIST_EIXO_SENSOR)
+    cor, pos_estimada = procura(hub, pos_estimada, cores_caçambas)
+    caminho_volta = achar_caminhos(pos_estimada, (0,0))
+    seguir_caminho(caminho_volta)
+    colocar_cubo_na_caçamba(cor)
+
 
 
 def LOG(*args, print=print, **kwargs):
@@ -427,9 +442,12 @@ def seguir_caminho(caminho): #! lidar com outras coisas
 
     for _ in interpretar_caminho(movs):
         while not rodas.done(): pass
-        
-    while orientacao_estimada != ori_final:
-        LOG(f"{orientacao_estimada=}, {ori_final=}")
+
+    acertar_orientacao(ori_final)
+
+def acertar_orientacao(ori):
+    while orientacao_estimada != ori:
+        LOG(f"{orientacao_estimada=}, {ori=}")
         virar_direita()
 
 def deve_calibrar():
@@ -572,42 +590,50 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
  #! tá empurrando
 def procura(hub, pos_estimada, cores_caçambas):
     cel_incertas = pegar_celulas_incertas()
-    caminho_todo = []
-    cel_inicio = pos_estimada
+    cel_atual = pos_estimada
 
     #! ordenar lista com o a_estrela
     for cel_destino in cel_incertas:
-        LOG("tentando de", cel_inicio, "até :", cel_destino)
+        LOG("tentando de", cel_atual, "até :", cel_destino)
         imprimir_mapa()
 
-        caminho = achar_caminhos(cel_inicio, cel_destino)
+        caminho = achar_caminhos(cel_atual, cel_destino)
         if not caminho:
             LOG("procura: nenhum caminho encontrado")
             continue
-        seguir_caminho(caminho)
 
-        caminho_todo += caminho
-        cel_inicio = cel_destino
+        # anda até ficar imediatamente antes da celula destino
+        caminho.pop(-1)
+        seguir_caminho(caminho)
+        cel_atual = caminho[-1]
+
+        # acerta orientação para como se tivesse andado tudo
+        restante = [cel_atual, cel_destino]
+        _, ori_final = achar_movimentos(restante, orientacao_estimada)
+        acertar_orientacao(ori_final)
+
+        rodas.straight(DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
 
         cor = blt.ver_cor_cubo(hub)
         if cor == cores.cor.NENHUMA: # não tem cubo
             LOG("procura: cel livre")
             tira_obstaculo(cel_destino)
+            rodas.straight(TAM_BLOCO - DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
+            cel_atual = cel_destino
             continue
         if cor not in cores_caçambas:
             LOG(f"procura: cubo desconhecido cor {cor}")
             if cor == cores.cor.BRANCO:
                 bipe_cabeca(hub) #! fazer fora?
             coloca_obstaculo(cel_destino)
-            dar_re(TAM_BLOCO) #! posição estimada fica errada aqui
-            caminho_todo.pop(-1)
-            cel_inicio = caminho[-1]
+            dar_re(DIST_CRUZAMENTO_CUBO)
             continue
 
         LOG(f"procura: cubo cor {cor}")
         blt.fechar_garra(hub)
         tira_obstaculo(cel_destino)
-        return cor, cel_inicio
+        dar_re(DIST_CRUZAMENTO_CUBO)
+        return cor, cel_atual
 
     imprimir_mapa()
 
