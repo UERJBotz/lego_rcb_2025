@@ -22,8 +22,9 @@ class Cor:
 
     def __init__(self, color=None, hsv=None, cor=None):
         self.color = color or cor2Color(cor)
-        self.cor   = cor   or Color2cor(color)
-        self.hsv   = hsv   or Color2tuple(color)
+        self.cor = cor or Color2cor(self.color)
+        self.hsv = hsv or self.color
+        self.hsv = Color2tuple(self.hsv)
 
         if self.hsv:
             self.h, self.s, self.v = self.hsv
