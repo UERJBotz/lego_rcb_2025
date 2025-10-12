@@ -6,6 +6,10 @@ from bleradio import BLERadio
 
 from lib.polyfill import Enum
 
+from comum import globais, coringa
+from comum import LOG, ERRO, ASSERT
+
+
 Cor = Enum("Cor", ["NENHUMA",
                    "PRETO",
                    "AZUL",
@@ -27,6 +31,15 @@ class NoneHub():
         self.ble = BLERadio(broadcast_channel,
                             observe_channels)
 
+    class system:
+        name = lambda: "supermini0"
+
+    def __get_attr__(self, *args, **kwargs): #! fazer direito
+        return coringa()
+    def __getattr__(self, *args, **kwargs): #! fazer direito
+        return coringa()
+
+
 def setup():
     global hub, timer, uart, led
 
@@ -38,7 +51,9 @@ def setup():
 
     hub = NoneHub(broadcast_channel=blt.TX_RABO,
                   observe_channels=[blt.TX_CABECA])
-    blt.init(hub)
+
+    globais.init(hub, True, True, nome="rabo")
+
     timer = millis()
     return hub
 
@@ -48,8 +63,8 @@ def main(hub):
     while True:
         if uart.any():
             cor = ord(uart.read(1))
-            hub.ble.broadcast((blt.comando_bt.cor_caçamba, cor))
-            print(Cor(cor))
+            hub.ble.broadcast((blt.rsp.cor_caçamba, cor))
+            LOG(Cor(cor))
 
         if (millis() - timer) > 1000:
             timer = millis()
@@ -57,7 +72,7 @@ def main(hub):
 
         comando = hub.ble.observe(blt.TX_CABECA)
         if comando is not None:
-            print(f"rabo: {comando}")
+            LOG(f"rabo: {comando}")
             #comando, *args = comando
         else: continue
 
@@ -68,5 +83,5 @@ if __name__ == "__main__":
             hub = setup()
             main(hub)
         except Exception as e:
-            print(f"{e}")
+            LOG(f"{e}")
             continue

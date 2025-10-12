@@ -1,5 +1,12 @@
-from pybricks.tools import wait
-from pybricks.parameters import Color
+try:
+    from pybricks.tools import wait
+    from pybricks.parameters import Color
+except ImportError:
+    from time import sleep_ms as wait
+
+    class Color:
+        ORANGE = None
+
 
 class globais:
     # cabeça
@@ -63,9 +70,17 @@ class bipes:
     falha      = lambda: (hub.speaker.beep(frequency=800, duration=500), wait(200),
                           hub.speaker.beep(frequency=800, duration=500),)
 
+class coringa:
+    def __init__(self, *args, **kwargs): pass
+    def __call__(*args, **kwargs): pass
+
+    def __get_attr__(*args, **kwargs):
+        return coringa()
+    def __getattr__(*args, **kwargs):
+        return coringa()
 
 def LOG(*args, print=print, **kwargs):
-    print(f"{nome}:", *args, **kwargs)
+    print(f"{globais.nome}:", *args, **kwargs)
 
 def ERRO(*args, bipar=True):
     LOG("ERRO:", *args);

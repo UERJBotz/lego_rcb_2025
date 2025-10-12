@@ -17,7 +17,7 @@ import garra
 
 def setup():
     global garra_fechada, garra_levantada
-    global sensor_cor_frente
+    global sensor_cor_frente, sensor_dist_dir
 
     garra_levantada = False
     garra_fechada   = False
@@ -30,6 +30,7 @@ def setup():
     globais.motor_vertical = Motor(Port.A, Direction.COUNTERCLOCKWISE)
 
     sensor_cor_frente = ColorSensor(Port.D)
+    sensor_dist_dir = UltrasonicSensor(Port.E)
 
     LOG("ligando arduino")
     try:
@@ -60,34 +61,38 @@ def main():
                 LOG("fechando")
                 garra.fecha_garra()
                 garra_fechada = True
-            hub.ble.broadcast((blt.cmd.fechei,))
+            blt.enviar_comando(blt.rsp.fechei)
         elif comando == blt.cmd.abre_garra:
             if garra_fechada:
                 LOG("abrindo")
                 garra.abre_garra()
                 garra_fechada = False
-            hub.ble.broadcast((blt.cmd.abri,))
+            blt.enviar_comando(blt.rsp.abri)
 
         elif comando == blt.cmd.levanta_garra:
             if not garra_levantada:
                 LOG("levantando")
                 garra.levanta_garra()
                 garra_levantada = True
-            hub.ble.broadcast((blt.cmd.levantei,))
+            blt.enviar_comando(blt.rsp.levantei)
         elif comando == blt.cmd.abaixa_garra:
             if garra_levantada:
                 LOG("abaixando")
                 garra.abaixa_garra()
                 garra_levantada = False
-            hub.ble.broadcast((blt.cmd.abaixei,))
+            blt.enviar_comando(blt.rsp.abaixei)
             
         elif comando == blt.cmd.ver_cor_cubo:
             #! reclassificar cor com hsv se der NONE
             cor = sensor_cor_frente.color()
-            hub.ble.broadcast((blt.cmd.cor_cubo, cores.Color2cor(cor)))
+            blt.enviar_comando(blt.rsp.cor_cubo, cores.Color2cor(cor))
         elif comando == blt.cmd.ver_hsv_cubo:
             cor = sensor_cor_frente.hsv()
-            hub.ble.broadcast((blt.cmd.hsv_cubo, cores.Color2tuple(cor)))
+            blt.enviar_comando(blt.rsp.hsv_cubo, cores.Color2tuple(cor))
+
+        elif comando == blt.cmd.ver_dist_caçamba:
+            dist = sensor_dist_dir.distance()
+            blt.enviar_comando(blt.rsp.dist_caçamba, dist)
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código

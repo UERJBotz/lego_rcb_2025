@@ -68,7 +68,7 @@ cores_caçambas = []
 
 def setup():
     global hub, rodas
-    global sensor_cor_esq, sensor_cor_dir
+    global sensor_cor_esq, sensor_cor_dir, sensor_dist_frente
     global botao_calibrar, orientacao_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
 
@@ -80,6 +80,7 @@ def setup():
 
     orientacao_estimada = ""
 
+    sensor_dist_frente = UltrasonicSensor(Port.F)
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
 
@@ -125,6 +126,8 @@ def test():
     ... # testar coisas aqui sem mudar o resto do código
     global orientacao_estimada, pos_estimada, cores_caçambas
     #cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
+    blt.resetar_garra()
+    testes.imprimir_caçamba_para_sempre()
     orientacao_estimada = "O"
     descobrir_cor_caçambas()
     return
@@ -623,13 +626,26 @@ def descobrir_cor_caçambas():
         #with mudar_velocidade(rodas, 50):
         rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
 
-class teste:
+class testes:
     @staticmethod
-    def imprimir_caçamba_para_sempre():
+    def imprimir_cor_caçamba_para_sempre():
         while True:
             cor = blt.ver_cor_caçamba()
             print(Cor.enum(cor))
 
+    @staticmethod
+    def imprimir_dist_caçamba_pra_sempre():
+        while True:
+            dist = blt.ver_dist_caçamba()
+            print(f"{dist=}")
+
+    @staticmethod
+    def imprimir_caçamba_para_sempre():
+        blt.SILENCIOSO = True
+        while True:
+            dist = blt.ver_dist_caçamba()
+            cor  = blt.ver_cor_caçamba()
+            print(f"dist: {dist}, cor: {Cor.enum(cor)}")
 
 if __name__ == "__main__":
     try:    TESTE == True

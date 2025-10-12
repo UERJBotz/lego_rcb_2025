@@ -53,6 +53,8 @@ rabo:: rabo.py
 	$(AMPY) --port /dev/ttyACM0 put $< main.py
 rabo:: bluetooth.py
 	$(AMPY) --port /dev/ttyACM0 put $< blt.py
+rabo:: comum.py
+	$(AMPY) --port /dev/ttyACM0 put $<
 rabo:: lib/polyfill.py
 	$(AMPY) --port /dev/ttyACM0 put $< $<
 rabo:: firmware/boot.py
