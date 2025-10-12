@@ -29,6 +29,7 @@ TAM_FAIXA = 20
 
 DIST_EIXO_SENSOR = 45
 DIST_EIXO_SENSOR_FRENTE = 110
+DIST_EIXO_SENSOR_TRAS = 110
 DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
 
 NUM_CAÇAMBAS = 5
@@ -95,7 +96,7 @@ def setup():
 
     rodas = DriveBase(roda_esq, roda_dir,
                       wheel_diameter=88, axle_track=145.5) #! recalibrar
-    rodas.use_gyro(True)
+    #rodas.use_gyro(True)
 
     botao_calibrar = Button.BLUETOOTH
 
@@ -133,8 +134,9 @@ def main(hub):
 def test(hub):
     ... # testar coisas aqui sem mudar o resto do código
     global orientacao_estimada, pos_estimada, cores_caçambas
-    cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
-    teste_ver_caçambas(1)
+    #cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
+    orientacao_estimada = "O"
+    descobrir_cor_caçambas()
     return
     main(hub)
 
@@ -634,17 +636,20 @@ def descobrir_cor_caçambas():
         cores_caçambas = [Cor.enum.NENHUMA for i in range(NUM_CAÇAMBAS)]
 
     alinhar_caçambas()
+    rodas.straight(DIST_EIXO_SENSOR_TRAS-10)
+    virar_direita()
+    achar_nao_verde_alinhado()
+    rodas.straight(DIST_VERDE_CAÇAMBA-10)
+    virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
-        rodas.straight(TAM_CAÇAMBA)
         cores_caçambas[i] = blt.ver_cor_caçamba(hub)
-        LOG(f"Cor caçamba: {cores_caçambas[i]}")
+        LOG(f"Cor caçamba:", Cor.enum(cores_caçambas[i]))
+        #with mudar_velocidade(rodas, 50):
+        rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
 
-def teste_ver_caçambas(opcao):
-    if opcao == 0:
-        global orientacao_estimada 
-        orientacao_estimada = "L"
-        descobrir_cor_caçambas()
-    if opcao == 1:
+class teste:
+    @staticmethod
+    def imprimir_caçamba_para_sempre():
         while True:
             cor = blt.ver_cor_caçamba(hub)
             print(Cor.enum(cor))
