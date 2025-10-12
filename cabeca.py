@@ -6,8 +6,6 @@ from pybricks.parameters import Port, Stop, Side, Axis, Direction, Button, Color
 from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
-from lib.bipes    import bipe_calibracao, bipe_cabeca, bipe_separador, musica_vitoria, musica_derrota
-
 from lib.caminhos import achar_movimentos, achar_caminhos, tipo_movimento
 from lib.caminhos import coloca_obstaculo, tira_obstaculo, pegar_celulas_incertas, imprimir_mapa
 
@@ -18,6 +16,10 @@ import gui
 import cores
 
 from cores import Cor
+
+from comum import globais, bipes
+from comum import LOG, ERRO, ASSERT
+
 
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
@@ -66,25 +68,15 @@ cores_caçambas = []
 
 def setup():
     global hub, rodas
-    global sensor_cor_esq, sensor_cor_dir, sensor_ultra_esq, sensor_ultra_dir
+    global sensor_cor_esq, sensor_cor_dir
     global botao_calibrar, orientacao_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
 
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
-                   observe_channels=[blt.TX_BRACO,
-                                     blt.TX_RABO],
-                    front_side=Axis.X, top_side=-Axis.Z)
-    nome, bat = hub.system.name(), hub.battery.voltage()
-
-    print(f"{nome}: {bat}mV")
-    while nome != "spike1":
-        hub.speaker.beep(frequency=1024); wait(200)
-    else:
-        hub.light.blink(Color.RED, [100,50,200,100])
-    blt.init(hub)
-
-    hub.display.orientation(Side.BOTTOM) #!
+                   observe_channels=[blt.TX_BRACO, blt.TX_RABO],
+                   front_side=Axis.X, top_side=-Axis.Z)
     hub.system.set_stop_button(Button.CENTER)
+    globais.init(hub, TESTE, DEBUG, nome="cabeça")
 
     orientacao_estimada = ""
 
@@ -93,32 +85,30 @@ def setup():
 
     roda_esq = Motor(Port.B, positive_direction=Direction.COUNTERCLOCKWISE)
     roda_dir = Motor(Port.A, positive_direction=Direction.CLOCKWISE)
-
-    rodas = DriveBase(roda_esq, roda_dir,
-                      wheel_diameter=88, axle_track=145.5) #! recalibrar
-    #rodas.use_gyro(True)
+    rodas    = DriveBase(roda_esq, roda_dir,
+                         wheel_diameter=88,
+                         axle_track=145.5) #! recalibrar
+    rodas.use_gyro(True)
 
     botao_calibrar = Button.BLUETOOTH
 
     rodas_conf_padrao = rodas.settings() #! CONSTANTIZAR
     vel_padrao     = rodas_conf_padrao[0]
     vel_ang_padrao = rodas_conf_padrao[2]
-    vels_padrao = vel_padrao, vel_ang_padrao
+    vels_padrao    = vel_padrao, vel_ang_padrao
 
     return hub
 
-def main(hub):
+def main():
     global orientacao_estimada, pos_estimada
     if deve_calibrar():
-        mapa_hsv = menu_calibracao(hub,
-                                   sensor_cor_esq,
-                                   sensor_cor_dir)
+        mapa_hsv = menu_calibracao(sensor_cor_esq, sensor_cor_dir)
         cores.repl_calibracao(mapa_hsv)#, lado="esq")
 
-    blt.resetar_garra(hub)
+    blt.resetar_garra()
 
-    blt.abaixar_garra(hub)
-    posicionamento_inicial(hub)
+    blt.abaixar_garra()
+    posicionamento_inicial()
 
     if not cores_caçambas:
         descobrir_cor_caçambas()
@@ -126,33 +116,19 @@ def main(hub):
 
     achar_nao_verde_alinhado()
     rodas.straight(DIST_EIXO_SENSOR)
-    cor, pos_estimada = procura(hub, pos_estimada, cores_caçambas)
+    cor, pos_estimada = procura(pos_estimada, cores_caçambas)
     caminho_volta = achar_caminhos(pos_estimada, (0,0))
     seguir_caminho(caminho_volta)
     colocar_cubo_na_caçamba(cor)
 
-def test(hub):
+def test():
     ... # testar coisas aqui sem mudar o resto do código
     global orientacao_estimada, pos_estimada, cores_caçambas
     #cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
     orientacao_estimada = "O"
     descobrir_cor_caçambas()
     return
-    main(hub)
-
-
-def LOG(*args, print=print, **kwargs):
-    print("cabeça:", *args, **kwargs)
-
-def ERRO(*args, bipar=True):
-    from lib.bipes import bipe_falha
-    LOG("ERRO:", *args); bipe_falha(hub)
-
-def ASSERT(cond, texto=None):
-    if DEBUG: assert cond, texto
-    elif not cond:
-        ERRO(f"assert '{texto}' falhou", bipar=DEBUG)
-    return cond
+    main()
 
 
 class mudar_velocidade():
@@ -249,7 +225,7 @@ def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
 
 
 def ver_cubo_perto() -> bool:
-    cor = blt.ver_cor_cubo(hub)
+    cor = blt.ver_cor_cubo()
     return cor != cores.NENHUMA
 
 def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
@@ -449,15 +425,15 @@ def deve_calibrar():
     return False
 
 #! como dito em cores, isso deve tar quebrado por conta da ordem do enum
-def menu_calibracao(hub, sensor_esq, sensor_dir,
-                         botao_parar=Button.BLUETOOTH,
-                         botao_aceitar=Button.CENTER,
-                         botao_anterior=Button.LEFT,
-                         botao_proximo=Button.RIGHT):
+def menu_calibracao(sensor_esq, sensor_dir,
+                    botao_parar=Button.BLUETOOTH,
+                    botao_aceitar=Button.CENTER,
+                    botao_anterior=Button.LEFT,
+                    botao_proximo=Button.RIGHT):
     hub.system.set_stop_button(
         (Button.CENTER, Button.BLUETOOTH)
     )
-    bipe_calibracao(hub)
+    bipes.calibracao()
     mapa_hsv = cores.mapa_hsv.copy()
 
     selecao = 0
@@ -486,14 +462,14 @@ def menu_calibracao(hub, sensor_esq, sensor_dir,
     hub.system.set_stop_button(Button.CENTER)
     return mapa_hsv
 
-def posicionamento_inicial(hub):
+def posicionamento_inicial():
     global orientacao_estimada
 
     viu_vermelho = False
     while not (viu_vermelho and orientacao_estimada == "L"):
         esq, dir = achar_nao_verde_alinhado()
 
-        bipe_separador(hub)
+        bipes.separador()
         dar_re_meio_quarteirao()
         if   esq.azul() and dir.azul():
             orientacao_estimada = "L"
@@ -506,8 +482,8 @@ def posicionamento_inicial(hub):
             virar_direita()
 
 #! considerar inimigo
-def procura_inicial(hub, xy, caçambas):
-    entra_primeira_rua(hub)
+def procura_inicial(xy, caçambas):
+    entra_primeira_rua()
 
     x, _ = xy #! para procura genérico, usar y também
     i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
@@ -518,14 +494,14 @@ def procura_inicial(hub, xy, caçambas):
 
     cor = extra
     if cor in caçambas:
-        pegar_cubo(hub)
-        dar_re_até_verde(hub, xy)
-        #! fazer_caminho_contrário(hub) #! voltar_para_verde(hub, xy)
+        pegar_cubo()
+        dar_re_até_verde(xy)
+        #! fazer_caminho_contrário() #! voltar_para_verde(xy)
         return cor, xy
     else:
-        fazer_caminho_contrário(hub) #! voltar_para_verde(hub, xy)
-        xy = andar_1_quarteirão_no_eixo_y(hub, xy)
-        return procura_inicial(hub, xy, caçambas)
+        fazer_caminho_contrário() #! voltar_para_verde(xy)
+        xy = andar_1_quarteirão_no_eixo_y(xy)
+        return procura_inicial(xy, caçambas)
 
 #começar da linha ate dist caçamba i - dist traseira ate sensor
 def alinhar_caçambas(): 
@@ -557,7 +533,7 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
     espaçamento = TAM_CUBO    if max_cubos == 2 else 0
 
     ASSERT(cor_cubo != Cor.enum.NENHUMA)
-    blt.levantar_garra(hub)
+    blt.levantar_garra()
     alinhar_caçambas()
     for i, (cor, dist) in enumerate(zip(cores_caçambas, DISTS_CAÇAMBAS)):
         if cor_cubo == cor:
@@ -565,13 +541,13 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
 
             rodas.straight(dist - DIST_BORDA_CAÇAMBA - margem
                           + cubos_caçambas[i]*(TAM_CUBO + espaçamento))
-            blt.abaixar_garra(hub)
-            blt.levantar_garra(hub)
+            blt.abaixar_garra()
+            blt.levantar_garra()
             virar_direita()
 
             achar_nao_verde_alinhado()
             rodas.straight(DIST_VERDE_CAÇAMBA)
-            blt.abrir_garra(hub)
+            blt.abrir_garra()
 
             cubos_caçambas[i] += 1
             return
@@ -579,7 +555,7 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
     raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
 
  #! tá empurrando
-def procura(hub, pos_estimada, cores_caçambas):
+def procura(pos_estimada, cores_caçambas):
     cel_incertas = pegar_celulas_incertas()
     cel_atual = pos_estimada
 
@@ -605,7 +581,7 @@ def procura(hub, pos_estimada, cores_caçambas):
 
         rodas.straight(DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
 
-        cor = blt.ver_cor_cubo(hub)
+        cor = blt.ver_cor_cubo()
         if cor == Cor.enum.NENHUMA: # não tem cubo
             LOG("procura: cel livre")
             tira_obstaculo(cel_destino)
@@ -615,13 +591,13 @@ def procura(hub, pos_estimada, cores_caçambas):
         if cor not in cores_caçambas:
             LOG(f"procura: cubo desconhecido cor {cor}")
             if cor == Cor.enum.BRANCO:
-                bipe_cabeca(hub) #! fazer fora?
+                bipes.cabeca() #! fazer fora?
             coloca_obstaculo(cel_destino)
             dar_re(DIST_CRUZAMENTO_CUBO)
             continue
 
         LOG(f"procura: cubo cor {cor}")
-        blt.fechar_garra(hub)
+        blt.fechar_garra()
         tira_obstaculo(cel_destino)
         dar_re(DIST_CRUZAMENTO_CUBO)
         return cor, cel_atual
@@ -642,7 +618,7 @@ def descobrir_cor_caçambas():
     rodas.straight(DIST_VERDE_CAÇAMBA-10)
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
-        cores_caçambas[i] = blt.ver_cor_caçamba(hub)
+        cores_caçambas[i] = blt.ver_cor_caçamba()
         LOG(f"Cor caçamba:", Cor.enum(cores_caçambas[i]))
         #with mudar_velocidade(rodas, 50):
         rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
@@ -651,13 +627,11 @@ class teste:
     @staticmethod
     def imprimir_caçamba_para_sempre():
         while True:
-            cor = blt.ver_cor_caçamba(hub)
+            cor = blt.ver_cor_caçamba()
             print(Cor.enum(cor))
 
 
 if __name__ == "__main__":
-    from lib.bipes import bipe_inicio, bipe_final, bipe_falha
-
     try:    TESTE == True
     except: TESTE = False
     try:    DEBUG == True
@@ -665,10 +639,10 @@ if __name__ == "__main__":
 
     hub = setup()
     try:
-        bipe_inicio(hub)
-        if TESTE: test(hub)
-        else:     main(hub)
-        bipe_final(hub)
+        bipes.inicio()
+        if TESTE: test()
+        else:     main()
+        bipes.final()
     except Exception as e:
-        bipe_falha(hub)
+        bipes.falha()
         raise e
