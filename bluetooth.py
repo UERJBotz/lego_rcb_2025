@@ -1,82 +1,83 @@
+import robot as globais
+
 from lib.polyfill import Enum
 
 TX_CABECA = 24
 TX_BRACO  = 69
 TX_RABO   = 32
 
-comando_bt = Enum("comando_bt", ["fecha_garra",
-                                 "abre_garra",
-                                 "levanta_garra",
-                                 "abaixa_garra",
-                                 "ver_cor_cubo",
-                                 "ver_hsv_cubo",
-                                 "ver_distancias",
-                                 "ver_cor_caçamba",
-                                 #! fazer um enum comandos e outro respostas
-                                 "fechei",
-                                 "abri",
-                                 "levantei",
-                                 "abaixei",
-                                 "cor_cubo",
-                                 "hsv_cubo",
-                                 "distancias",
-                                 "cor_caçamba"])
+cmd = Enum("cmd", ["fecha_garra",
+                   "abre_garra",
+                   "levanta_garra",
+                   "abaixa_garra",
+                   "ver_cor_cubo",
+                   "ver_hsv_cubo",
+                   "ver_distancias",
+                   "ver_cor_caçamba",
+                   #! fazer um enum comandos e outro respostas
+                   "fechei",
+                   "abri",
+                   "levantei",
+                   "abaixei",
+                   "cor_cubo",
+                   "hsv_cubo",
+                   "distancias",
+                   "cor_caçamba"])
 
-#! tirar hub dos argumentos
 
-def init(hub):
-    global ble
-    ble = hub.ble
+def enviar_comando(*comando):
+    globais.ble.broadcast(tuple(comando))
 
-def esperar_resposta(hub, esperado, canal=TX_BRACO):
+def esperar_resposta(esperado, canal=TX_BRACO):
     comando = -1
     while comando != esperado:
-        comando = ble.observe(canal)
+        comando = globais.ble.observe(canal)
         if comando is not None:
             comando, *args = comando
     return args
 
-def resetar_garra(hub):
-    levantar_garra(hub)
-    fechar_garra(hub)
-    abrir_garra(hub)
+def resetar_garra():
+    levantar_garra()
+    fechar_garra()
+    abrir_garra()
 
-def fechar_garra(hub):
+def fechar_garra():
     print("fechar_garra:")
-    ble.broadcast((comando_bt.fecha_garra,))
-    return esperar_resposta(hub, comando_bt.fechei)
+    enviar_comando(cmd.fecha_garra)
+    return esperar_resposta(cmd.fechei)
 
-def abrir_garra(hub):
+def abrir_garra():
     print("abrir_garra:")
-    ble.broadcast((comando_bt.abre_garra,))
-    return esperar_resposta(hub, comando_bt.abri)
+    enviar_comando(cmd.abre_garra)
+    return esperar_resposta(cmd.abri)
 
-def levantar_garra(hub):
+def levantar_garra():
     print("levantar_garra:")
-    ble.broadcast((comando_bt.levanta_garra,))
-    return esperar_resposta(hub, comando_bt.levantei)
+    enviar_comando(cmd.levanta_garra)
+    return esperar_resposta(cmd.levantei)
 
-def abaixar_garra(hub):
+def abaixar_garra():
     print("abaixar_garra:")
-    ble.broadcast((comando_bt.abaixa_garra,))
-    return esperar_resposta(hub, comando_bt.abaixei)
+    enviar_comando(cmd.abaixa_garra)
+    return esperar_resposta(cmd.abaixei)
 
-def ver_cor_cubo(hub):
+def ver_cor_cubo():
     print("ver_cor_cubo:")
-    ble.broadcast((comando_bt.ver_cor_cubo,))
-    return esperar_resposta(hub, comando_bt.cor_cubo)[0]
+    enviar_comando(cmd.ver_cor_cubo)
+    return esperar_resposta(cmd.cor_cubo)[0]
 
-def ver_hsv_cubo(hub):
+def ver_hsv_cubo():
     print("ver_hsv_cubo:")
-    ble.broadcast((comando_bt.ver_hsv_cubo,))
-    return esperar_resposta(hub, comando_bt.hsv_cubo)
+    enviar_comando(cmd.ver_hsv_cubo)
+    return esperar_resposta(cmd.hsv_cubo)
 
-def ver_distancias(hub):
+def ver_distancias():
     print("ver_distancias:")
-    ble.broadcast((comando_bt.ver_distancias,))
-    return esperar_resposta(hub, comando_bt.distancias)
+    enviar_comando(cmd.ver_distancias)
+    return esperar_resposta(cmd.distancias)
 
-def ver_cor_caçamba(hub):
+def ver_cor_caçamba():
     print("ver_cor_caçamba:")
-    #ble.broadcast((comando_bt.ver_cor_caçamba,))
-    return esperar_resposta(hub, comando_bt.cor_caçamba, canal=TX_RABO)[0]
+    #enviar_comando(cmd.ver_cor_caçamba)
+    return esperar_resposta(cmd.cor_caçamba, canal=TX_RABO)[0]
+
