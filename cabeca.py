@@ -12,13 +12,13 @@ from lib.caminhos import coloca_obstaculo, tira_obstaculo, pegar_celulas_incerta
 from urandom import choice
 
 import bluetooth as blt
-import globais
 import gui
 import cores
 
 from cores import Cor
-from globais import bipes
-from globais import LOG, ERRO, ASSERT
+
+from comum import globais, bipes
+from comum import LOG, ERRO, ASSERT
 
 
 VEL_ALINHAR = 80

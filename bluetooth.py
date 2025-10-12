@@ -1,4 +1,4 @@
-import globais
+from comum import globais
 
 from lib.polyfill import Enum
 

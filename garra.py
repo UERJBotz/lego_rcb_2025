@@ -1,7 +1,7 @@
 from pybricks.parameters import Port, Stop
 from pybricks.tools      import wait
 
-import robot as globais
+from comum import globais
 
 RAIO_ENGRENAGEM  = 6#mm
 DIST_SUBIR_GARRA = 100#mm

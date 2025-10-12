@@ -4,14 +4,13 @@ from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
 from pybricks.parameters import Port, Button, Color, Direction
 from pybricks.tools      import wait, StopWatch
 
+from comum import globais, bipes
+from comum import LOG, ERRO, ASSERT
+
 import bluetooth as blt
 
-import globais
 import cores
 import garra
-
-from globais import bipes
-from globais import LOG, ERRO, ASSERT
 
 
 #! se a gente girar a garra na mão, mesmo resetando a cabeça, o estado da garra no braço se mantém e a gente se fode.
