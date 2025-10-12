@@ -2,13 +2,10 @@ from pybricks.tools import wait
 
 # cabeça
 rodas = None
-sensor_cor_esq = None
-sensor_cor_dir = None
 
 # braço
 motor_garra = None
 motor_vertical = None
-sensor_cor_frente = None
 
 # comum
 hub = None
@@ -16,8 +13,7 @@ ble = None
 name = None
 nome = None
 
-
-def init(_hub, _teste, _debug, _ble=None):
+def _init(_hub, _teste, _debug, _nome, _ble=None):
     global hub, ble
     hub = _hub
     ble = _ble or _hub.ble
@@ -28,10 +24,23 @@ def init(_hub, _teste, _debug, _ble=None):
 
     global name, nome
     name = hub.system.name()
-    if   name == "spike0": nome = "braço"
-    elif name == "spike1": nome = "cabeça"
+    nome = _nome
+
+def init(hub, *args, nome=None, **kwargs, ble=None):
+    _init(hub, *args, _nome=nome, **kwargs, _ble=ble)
+
+    LOG(f"{name}: {hub.battery.voltage()}mV")
+    if   nome == "braço":  esperado = "spike0"
+    elif nome == "cabeça": esperado = "spike1"
+    elif nome == "rabo":   esperado = "supermini0"
     else:
-        ASSERT(False, "hub desconhecido")
+        ASSERT(False, "nome de robô inesperado")
+        esperado = None
+
+    while name != esperado:
+        hub.speaker.beep(frequency=1024); wait(200)
+    else:
+        hub.light.blink(Color.ORANGE, [100,50,200,100])
 
 
 class bipes:

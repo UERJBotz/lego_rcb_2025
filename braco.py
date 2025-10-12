@@ -18,28 +18,24 @@ from globais import LOG, ERRO, ASSERT
 
 def setup():
     global garra_fechada, garra_levantada
+    global sensor_cor_frente
+
+    garra_levantada = False
+    garra_fechada   = False
 
     hub = PrimeHub(broadcast_channel=blt.TX_BRACO,
                    observe_channels=[blt.TX_CABECA])
-    globais.init(hub, TESTE, DEBUG)
+    globais.init(hub, TESTE, DEBUG, nome="braço")
 
-    garra_fechada = False
-    garra_levantada = False
+    globais.motor_garra    = Motor(Port.B, Direction.COUNTERCLOCKWISE)
+    globais.motor_vertical = Motor(Port.A, Direction.COUNTERCLOCKWISE)
 
-    LOG(f"{globais.nome}: {hub.battery.voltage()}mV")
-    while globais.nome != "braço":
-        hub.speaker.beep(frequency=1024); wait(200)
-    else:
-        hub.light.blink(Color.ORANGE, [100,50,200,100])
-
-    globais.motor_garra       = Motor(Port.B, Direction.COUNTERCLOCKWISE)
-    globais.motor_vertical    = Motor(Port.A, Direction.COUNTERCLOCKWISE)
-    globais.sensor_cor_frente = ColorSensor(Port.D)
+    sensor_cor_frente = ColorSensor(Port.D)
 
     LOG("ligando arduino")
     try:
-        from pybricks.pupdevices import DCMotor as DC
-        arduino5V = DC(Port.F).dc(100)
+        from pybricks.pupdevices import DCMotor
+        arduino = DCMotor(Port.F); arduino.dc(100)
         LOG("arduino ligado")
     except OSError:
         ERRO("ARDUINO NÃO CONECTADO!")
@@ -88,10 +84,10 @@ def main():
             
         elif comando == blt.cmd.ver_cor_cubo:
             #! reclassificar cor com hsv se der NONE
-            cor = globais.sensor_cor_frente.color()
+            cor = sensor_cor_frente.color()
             hub.ble.broadcast((blt.cmd.cor_cubo, cores.Color2cor(cor)))
         elif comando == blt.cmd.ver_hsv_cubo:
-            cor = globais.sensor_cor_frente.hsv()
+            cor = sensor_cor_frente.hsv()
             hub.ble.broadcast((blt.cmd.hsv_cubo, cores.Color2tuple(cor)))
 
 def test():

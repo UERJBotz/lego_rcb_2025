@@ -1,4 +1,4 @@
-import robot as globais
+import globais
 
 from lib.polyfill import Enum
 

@@ -75,13 +75,7 @@ def setup():
                    observe_channels=[blt.TX_BRACO, blt.TX_RABO],
                    front_side=Axis.X, top_side=-Axis.Z)
     hub.system.set_stop_button(Button.CENTER)
-    globais.init(hub, TESTE, DEBUG)
-
-    print(f"{globais.nome}: {hub.battery.voltage()}mV")
-    while globais.nome != "cabeça":
-        hub.speaker.beep(frequency=1024); wait(200)
-    else:
-        hub.light.blink(Color.RED, [100,50,200,100])
+    globais.init(hub, TESTE, DEBUG, nome="cabeça")
 
     orientacao_estimada = ""
 
