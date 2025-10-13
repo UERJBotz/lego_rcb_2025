@@ -102,10 +102,6 @@ def setup():
 
 def main():
     global orientacao_estimada, pos_estimada
-    if deve_calibrar():
-        mapa_hsv = menu_calibracao(sensor_cor_esq, sensor_cor_dir)
-        cores.repl_calibracao(mapa_hsv)#, lado="esq")
-
     blt.resetar_garra()
 
     blt.abaixar_garra()
@@ -423,52 +419,6 @@ def acertar_orientacao(ori):
     while orientacao_estimada != ori:
         LOG(f"{orientacao_estimada=}, {ori=}")
         virar_direita()
-
-def deve_calibrar():
-    #! levar os dois sensores em consideração separadamente
-    crono = StopWatch()
-    while crono.time() < 100:
-        botões = hub.buttons.pressed()
-        if botao_calibrar in botões: return True
-    return False
-
-#! como dito em cores, isso deve tar quebrado por conta da ordem do enum
-def menu_calibracao(sensor_esq, sensor_dir,
-                    botao_parar=Button.BLUETOOTH,
-                    botao_aceitar=Button.CENTER,
-                    botao_anterior=Button.LEFT,
-                    botao_proximo=Button.RIGHT):
-    hub.system.set_stop_button(
-        (Button.CENTER, Button.BLUETOOTH)
-    )
-    bipes.calibracao()
-    mapa_hsv = cores.mapa_hsv.copy()
-
-    selecao = 0
-
-    wait(150)
-    while True:
-        botões = gui.tela_escolher_cor(hub, Cor.enum, selecao)
-
-        if   botao_proximo  in botões:
-            selecao = (selecao + 1) % len(Cor.enum)
-            wait(100)
-        elif botao_anterior in botões:
-            selecao = (selecao - 1) % len(Cor.enum)
-            wait(100)
-
-        elif botao_aceitar in botões:
-            [wait(100) for _ in gui.mostrar_palavra(hub, "CAL..")]
-            mapa_hsv[selecao] = (
-                cores.coletar_valores(hub, botao_aceitar, dir=sensor_dir, esq=sensor_esq)
-            )
-            wait(150)
-        elif botao_parar   in botões:
-            wait(100)
-            break
-
-    hub.system.set_stop_button(Button.CENTER)
-    return mapa_hsv
 
 def posicionamento_inicial():
     global orientacao_estimada

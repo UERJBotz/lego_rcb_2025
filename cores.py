@@ -5,6 +5,8 @@ from lib.polyfill import Enum, rgb_to_hsv, hsv_to_rgb
 
 from lib.cores_calibradas_ import mapa_hsv, mapa_hsv_frente
 
+from comum import globais
+
 cor = Enum("cor", ["NENHUMA",
                    "PRETO",
                    "AZUL",
@@ -68,26 +70,26 @@ def Color2tuple(color): #! falhar mais alto
 
 def Color2cor(color): #! falhar mais alto
     res = {
-        Color2tuple(Color.BLACK ): cor.PRETO,
-        Color2tuple(Color.BLUE  ): cor.AZUL,
-        Color2tuple(Color.GREEN ): cor.VERDE, 
-        Color2tuple(Color.YELLOW): cor.AMARELO,
-        Color2tuple(Color.RED   ): cor.VERMELHO,
-        Color2tuple(Color.WHITE ): cor.BRANCO,
-        Color2tuple(Color.BROWN ): cor.MARROM,
+        Color2tuple(Color.BLACK ): Cor.enum.PRETO,
+        Color2tuple(Color.BLUE  ): Cor.enum.AZUL,
+        Color2tuple(Color.GREEN ): Cor.enum.VERDE,
+        Color2tuple(Color.YELLOW): Cor.enum.AMARELO,
+        Color2tuple(Color.RED   ): Cor.enum.VERMELHO,
+        Color2tuple(Color.WHITE ): Cor.enum.BRANCO,
+        Color2tuple(Color.BROWN ): Cor.enum.MARROM,
     }.get(Color2tuple(color))
     return res if res is not None else cor.NENHUMA
 
 def cor2Color(cor): #! falhar mais alto
     res = {
-        cor.NENHUMA:  Color.NONE,
-        cor.PRETO:    Color.BLACK,
-        cor.AZUL:     Color.BLUE,
-        cor.VERDE:    Color.GREEN,
-        cor.AMARELO:  Color.YELLOW,
-        cor.VERMELHO: Color.RED,
-        cor.BRANCO:   Color.WHITE,
-        cor.MARROM:   Color.BROWN
+        Cor.enum.NENHUMA:  Color.NONE,
+        Cor.enum.PRETO:    Color.BLACK,
+        Cor.enum.AZUL:     Color.BLUE,
+        Cor.enum.VERDE:    Color.GREEN,
+        Cor.enum.AMARELO:  Color.YELLOW,
+        Cor.enum.VERMELHO: Color.RED,
+        Cor.enum.BRANCO:   Color.WHITE,
+        Cor.enum.MARROM:   Color.BROWN
     }.get(cor)
     return res
 
@@ -110,10 +112,10 @@ def todas(sensor_esq, sensor_dir) -> tuple[tuple, tuple]:
     dir = Cor(sensor_dir.color(), sensor_dir.hsv())
     return (esq, dir)
 
-def iter_coleta(hub, botao_parar, sensor):
+def iter_coleta(botao_parar, sensor):
     minm, maxm = (360, 100, 100), (0, 0, 0)
     soma, cont = (000, 000, 000), 0
-    while botao_parar not in hub.buttons.pressed():
+    while botao_parar not in globais.hub.buttons.pressed():
         hsv = sensor.hsv()
         hsv = hsv.h, hsv.s, hsv.v
 
@@ -133,23 +135,10 @@ def iter_coleta(hub, botao_parar, sensor):
         yield (minm, soma, cont, maxm)
 
 
-def coletar_valores(hub, botao_parar, esq=None, dir=None) -> tuple[hsv, hsv, hsv]: # type: ignore
+def coletar_valores(botao_parar, sensor) -> tuple[hsv, hsv, hsv]: # type: ignore
     wait(200)
-    if esq and dir:
-        for info_esq, info_dir in zip(iter_coleta(hub, botao_parar, esq),
-                                      iter_coleta(hub, botao_parar, dir)):
-            minme, somae, conte, maxme = info_esq
-            minmd, somad, contd, maxmd = info_dir
-
-            minm = tuple(map(min, minme, minmd))
-            soma = tuple(map(lambda c,s: c+s, somad, somae))
-            cont = conte + contd
-            maxm = tuple(map(max, maxme, maxmd))
-            #! fiz assim provisoriamente, acho que devia ser separado por lado mesmo
-    else:
-        sensor = esq if esq else dir
-        for info in iter_coleta(hub, botao_parar, sensor):
-            minm, soma, cont, maxm = info
+    for info in iter_coleta(botao_parar, sensor):
+        minm, soma, cont, maxm = info
 
     med = tuple(map(lambda s: s/cont, soma))
     print("max:", maxm, "med:", med, "min:", minm)
@@ -216,8 +205,9 @@ def certificar(sensor_dir, sensor_esq, uni, uni2=None) -> bool:
     return res
 
 
-def repl_calibracao(mapa_hsv, lado=""):
+#! tinha um motivo pra não guardar cor.NENHUMA?
+def repl_calibração(mapa_hsv, lado=""):
     print(f"mapa_hsv{lado} = [")
-    for c in range(len(cor)-1): # -1 pula cor NENHUMA
-        print(f"\t{mapa_hsv[c]}, #{cor(c)}")
+    for c in Cor.enum:
+        print(f"\t{mapa_hsv[Cor.enum[c]]}, #{c}")
     print("]")

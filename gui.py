@@ -1,6 +1,9 @@
 from pybricks.tools import StopWatch, wait
 from pybricks.parameters import Color
 
+from cores import cor2Color, Cor
+from comum import globais
+
 _ = 0
 H = 100
 
@@ -100,16 +103,6 @@ palavras = dict(
     PRETO="PR",
     BRANCO="BR",
 )
-cor2Color = [
-    Color.YELLOW,
-    Color.GREEN,
-    Color.BLUE,
-    Color.RED,
-    Color.BROWN,
-    Color.BLACK,
-    Color.WHITE,
-    Color.NONE,
-]
 
 QTD_LINHAS = 5
 def concatena_letras(*letras):
@@ -122,7 +115,7 @@ def concatena_letras(*letras):
 def passo_anim(palavra, i):
     return [r[i:i+5] for r in palavra]
 
-def mostrar_palavra(hub, nome):
+def mostrar_palavra(nome):
     mat = concatena_letras(*(letras.get(letra) or letras["nul"]
                              for letra in palavras.get(nome) or nome))
     for i in range(len(mat[0])):        
@@ -130,18 +123,18 @@ def mostrar_palavra(hub, nome):
         if len(m[0]) < QTD_LINHAS:
             m = [l + [_]*(QTD_LINHAS - len(l)) for l in m]
 
-        yield hub.display.icon(m)
+        yield globais.hub.display.icon(m)
 
-def tela_escolher_cor(hub, enum_cor, selecao, intervalo_anim=110, intervalo_botao=100):
-    cor = enum_cor(selecao)
+def tela_escolher_cor(selecao, intervalo_anim=110, intervalo_botao=100):
+    cor = Cor.enum(selecao)
     sw = StopWatch()
 
-    for _ in mostrar_palavra(hub, cor):
+    for _ in mostrar_palavra(cor):
         sw.reset()
-        hub.light.on(cor2Color[selecao])
+        globais.hub.light.on(cor2Color(selecao))
         while sw.time() < intervalo_anim:
             wait(intervalo_botao)
-            botoes = hub.buttons.pressed()
+            botoes = globais.hub.buttons.pressed()
             if botoes: return botoes
 
     return {}
