@@ -85,10 +85,16 @@ def main():
         elif comando == blt.cmd.ver_cor_cubo:
             #! reclassificar cor com hsv se der NONE
             cor = sensor_cor_frente.color()
-            blt.enviar_comando(blt.rsp.cor_cubo, cores.Color2cor(cor))
+            cor = cores.Color2cor(cor)
+            hsv = sensor_cor_frente.hsv()
+            if   cor == cores.cor.NENHUMA:
+                cor = cores.identificar(hsv, sensor="chao")
+            elif cor == cores.cor.VERMELHO:
+                cor = cores.identificar(hsv, sensor="frente")
+            blt.enviar_comando(blt.rsp.cor_cubo, cor)
         elif comando == blt.cmd.ver_hsv_cubo:
             cor = sensor_cor_frente.hsv()
-            blt.enviar_comando(blt.rsp.hsv_cubo, cores.Color2tuple(cor))
+            blt.enviar_comando(blt.rsp.hsv_cubo, *cores.Color2tuple(cor))
 
         elif comando == blt.cmd.ver_dist_caçamba:
             dist = sensor_dist_dir.distance()

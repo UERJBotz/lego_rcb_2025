@@ -124,6 +124,11 @@ def main():
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código
+    blt.SILENCIOSO = True
+    blt.resetar_garra()
+    blt.abaixar_garra()
+    testes.imprimir_cor_cubo_para_sempre()
+
     global orientacao_estimada, pos_estimada, cores_caçambas
     #cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
     blt.resetar_garra()
@@ -229,7 +234,7 @@ def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
 
 def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo()
-    return cor != cores.NENHUMA
+    return cor != Cor.enum.NENHUMA
 
 def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
     rodas.reset()
@@ -638,6 +643,14 @@ class testes:
         while True:
             dist = blt.ver_dist_caçamba()
             print(f"{dist=}")
+
+    @staticmethod
+    def imprimir_cor_cubo_para_sempre():
+        blt.SILENCIOSO = True
+        while True:
+            hsv = blt.ver_hsv_cubo()
+            cor = blt.ver_cor_cubo()
+            print(f"hsv: {hsv}, cor: {Cor.enum(cor)}")
 
     @staticmethod
     def imprimir_caçamba_para_sempre():
