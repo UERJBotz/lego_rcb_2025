@@ -33,16 +33,21 @@ rsp = Enum("rsp", [
     "dist_caçamba",
 ])
 
+def enviar_mensagem(*msg, enum):
+    if not SILENCIOSO: print(f"enviar_mensagem: {enum(msg[0])}{msg[1:]}")
+    globais.ble.broadcast(tuple(msg))
+
 def enviar_comando(*comando):
-    if not SILENCIOSO: print(f"enviar_comando: {cmd(comando)}{comando}")
-    globais.ble.broadcast(tuple(comando))
+    enviar_mensagem(*comando, enum=cmd)
+def enviar_resposta(*resposta):
+    enviar_mensagem(*resposta, enum=rsp)
 
 def esperar_resposta(esperado, canal=TX_BRACO):
     resposta = -1
     if not SILENCIOSO: print(f"esperar_resposta: {rsp(esperado)}")
     while resposta != esperado:
-        resposta = globais.ble.observe(canal)
-        if not SILENCIOSO: print(f"esperar_resposta: recebido {canal} {rsp(resposta)}{resposta}")
+        resposta = globais.ble.observe(canal) or (None,)
+        if not SILENCIOSO: print(f"esperar_resposta: recebido({canal}) {rsp(resposta[0])}{resposta[1:]}")
         if resposta is not None:
             resposta, *args = resposta
     if len(args) == 1: return args[0]
@@ -54,47 +59,38 @@ def resetar_garra():
     abrir_garra()
 
 def fechar_garra():
-    if not SILENCIOSO: print("fechar_garra:")
     enviar_comando(cmd.fecha_garra)
     return esperar_resposta(rsp.fechei)
 
 def abrir_garra():
-    if not SILENCIOSO: print("abrir_garra:")
     enviar_comando(cmd.abre_garra)
     return esperar_resposta(rsp.abri)
 
 def levantar_garra():
-    if not SILENCIOSO: print("levantar_garra:")
     enviar_comando(cmd.levanta_garra)
     return esperar_resposta(rsp.levantei)
 
 def abaixar_garra():
-    if not SILENCIOSO: print("abaixar_garra:")
     enviar_comando(cmd.abaixa_garra)
     return esperar_resposta(rsp.abaixei)
 
 def ver_cor_cubo():
-    if not SILENCIOSO: print("ver_cor_cubo:")
     enviar_comando(cmd.ver_cor_cubo)
     return esperar_resposta(rsp.cor_cubo)
 
 def ver_hsv_cubo():
-    if not SILENCIOSO: print("ver_hsv_cubo:")
     enviar_comando(cmd.ver_hsv_cubo)
     return esperar_resposta(rsp.hsv_cubo)
 
 def ver_distancias():
-    if not SILENCIOSO: print("ver_distancias:")
     enviar_comando(cmd.ver_distancias)
     return esperar_resposta(rsp.distancias)
 
 def ver_cor_caçamba():
-    if not SILENCIOSO: print("ver_cor_caçamba:")
     #enviar_comando(cmd.ver_cor_caçamba)
     return esperar_resposta(rsp.cor_caçamba, canal=TX_RABO)
 
 def ver_dist_caçamba():
-    if not SILENCIOSO: print("ver_dist_caçamba:")
     enviar_comando(cmd.ver_dist_caçamba)
     return esperar_resposta(rsp.dist_caçamba)
 
