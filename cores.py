@@ -53,11 +53,14 @@ class Cor:
     def __str__(self):
         return f"{self.enum(self.cor)}[{self.h}, {self.s}, {self.v}]"
 
-    def vermelho(self): return (self.color == Color.RED)
-    def verde(self):    return (self.color == Color.GREEN)
-    def branco(self):   return (self.color == Color.WHITE)
     def preto(self):    return (self.color == Color.PRETO)
     def azul(self):     return (self.color == Color.BLUE)
+    def verde(self):    return (self.color == Color.GREEN)
+    def amarelo(self):  return ((self.color == Color.YELLOW) or
+                                (self.color == Color.WHITE))
+    def vermelho(self): return (self.color == Color.RED)
+    def branco(self):   return (self.color == Color.WHITE)
+    def marrom(self):   return (self.color == Color.BROWN)
 
     def area_livre(self): return self.verde()
     def pista(self):      return self.branco() or self.verde()
