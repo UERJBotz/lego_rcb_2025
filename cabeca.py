@@ -102,10 +102,6 @@ def setup():
 
 def main():
     global orientacao_estimada, pos_estimada
-    if deve_calibrar():
-        mapa_hsv = menu_calibracao(sensor_cor_esq, sensor_cor_dir)
-        cores.repl_calibracao(mapa_hsv)#, lado="esq")
-
     blt.resetar_garra()
 
     blt.abaixar_garra()
@@ -124,6 +120,11 @@ def main():
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código
+    blt.SILENCIOSO = True
+    blt.resetar_garra()
+    blt.abaixar_garra()
+    testes.imprimir_cor_cubo_para_sempre()
+
     global orientacao_estimada, pos_estimada, cores_caçambas
     #cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
     blt.resetar_garra()
@@ -229,7 +230,7 @@ def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
 
 def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo()
-    return cor != cores.NENHUMA
+    return cor != Cor.enum.NENHUMA
 
 def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
     rodas.reset()
@@ -419,52 +420,6 @@ def acertar_orientacao(ori):
         LOG(f"{orientacao_estimada=}, {ori=}")
         virar_direita()
 
-def deve_calibrar():
-    #! levar os dois sensores em consideração separadamente
-    crono = StopWatch()
-    while crono.time() < 100:
-        botões = hub.buttons.pressed()
-        if botao_calibrar in botões: return True
-    return False
-
-#! como dito em cores, isso deve tar quebrado por conta da ordem do enum
-def menu_calibracao(sensor_esq, sensor_dir,
-                    botao_parar=Button.BLUETOOTH,
-                    botao_aceitar=Button.CENTER,
-                    botao_anterior=Button.LEFT,
-                    botao_proximo=Button.RIGHT):
-    hub.system.set_stop_button(
-        (Button.CENTER, Button.BLUETOOTH)
-    )
-    bipes.calibracao()
-    mapa_hsv = cores.mapa_hsv.copy()
-
-    selecao = 0
-
-    wait(150)
-    while True:
-        botões = gui.tela_escolher_cor(hub, Cor.enum, selecao)
-
-        if   botao_proximo  in botões:
-            selecao = (selecao + 1) % len(Cor.enum)
-            wait(100)
-        elif botao_anterior in botões:
-            selecao = (selecao - 1) % len(Cor.enum)
-            wait(100)
-
-        elif botao_aceitar in botões:
-            [wait(100) for _ in gui.mostrar_palavra(hub, "CAL..")]
-            mapa_hsv[selecao] = (
-                cores.coletar_valores(hub, botao_aceitar, dir=sensor_dir, esq=sensor_esq)
-            )
-            wait(150)
-        elif botao_parar   in botões:
-            wait(100)
-            break
-
-    hub.system.set_stop_button(Button.CENTER)
-    return mapa_hsv
-
 def posicionamento_inicial():
     global orientacao_estimada
 
@@ -638,6 +593,14 @@ class testes:
         while True:
             dist = blt.ver_dist_caçamba()
             print(f"{dist=}")
+
+    @staticmethod
+    def imprimir_cor_cubo_para_sempre():
+        blt.SILENCIOSO = True
+        while True:
+            hsv = blt.ver_hsv_cubo()
+            cor = blt.ver_cor_cubo()
+            print(f"hsv: {hsv}, cor: {Cor.enum(cor)}")
 
     @staticmethod
     def imprimir_caçamba_para_sempre():

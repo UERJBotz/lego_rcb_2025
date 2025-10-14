@@ -1,7 +1,7 @@
 from pybricks.hubs import PrimeHub
 
 from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
-from pybricks.parameters import Port, Button, Color, Direction
+from pybricks.parameters import Port, Button, Color, Direction, Side
 from pybricks.tools      import wait, StopWatch
 
 from comum import globais, bipes
@@ -24,6 +24,7 @@ def setup():
 
     hub = PrimeHub(broadcast_channel=blt.TX_BRACO,
                    observe_channels=[blt.TX_CABECA])
+    hub.display.orientation(Side.BOTTOM)
     globais.init(hub, TESTE, DEBUG, nome="braço")
 
     globais.motor_garra    = Motor(Port.B, Direction.COUNTERCLOCKWISE)
@@ -82,13 +83,18 @@ def main():
                 garra_levantada = False
             blt.enviar_comando(blt.rsp.abaixei)
             
-        elif comando == blt.cmd.ver_cor_cubo:
-            #! reclassificar cor com hsv se der NONE
+        elif comando == blt.cmd.ver_cor_cubo: #! isso é uma gambiarrinha, devia tar em Cor
             cor = sensor_cor_frente.color()
-            blt.enviar_comando(blt.rsp.cor_cubo, cores.Color2cor(cor))
+            cor = cores.Color2cor(cor)
+            hsv = sensor_cor_frente.hsv()
+            if   cor == cores.cor.NENHUMA:
+                cor = cores.identificar(hsv, sensor="frente")#"chao")
+            elif cor == cores.cor.VERMELHO:
+                cor = cores.identificar(hsv, sensor="frente")
+            blt.enviar_comando(blt.rsp.cor_cubo, cor)
         elif comando == blt.cmd.ver_hsv_cubo:
             cor = sensor_cor_frente.hsv()
-            blt.enviar_comando(blt.rsp.hsv_cubo, cores.Color2tuple(cor))
+            blt.enviar_comando(blt.rsp.hsv_cubo, *cores.Color2tuple(cor))
 
         elif comando == blt.cmd.ver_dist_caçamba:
             dist = sensor_dist_dir.distance()
@@ -96,6 +102,47 @@ def main():
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código
+    mapa_hsv = menu_calibração(sensor_cor_frente)
+    cores.repl_calibração(mapa_hsv, lado="frente")
+
+def menu_calibração(*sensores, botao_parar=Button.BLUETOOTH,
+                               botao_aceitar=Button.CENTER,
+                               botao_anterior=Button.LEFT,
+                               botao_proximo=Button.RIGHT):
+    import gui
+
+    hub.system.set_stop_button(
+        (Button.CENTER, Button.BLUETOOTH)
+    )
+    bipes.calibracao()
+    mapa_hsv = cores.mapa_hsv_frente.copy()
+
+    selecao = 0
+
+    wait(150)
+    while True:
+        botões = gui.tela_escolher_cor(selecao)
+
+        if   botao_proximo  in botões:
+            selecao = (selecao + 1) % len(cores.cor)
+            wait(100)
+        elif botao_anterior in botões:
+            selecao = (selecao - 1) % len(cores.cor)
+            wait(100)
+
+        elif botao_aceitar in botões:
+            [wait(100) for _ in gui.mostrar_palavra("CAL..")]
+            mapa_hsv[selecao] = (
+                cores.coletar_valores(botao_aceitar, *sensores)
+            )
+            wait(150)
+        elif botao_parar   in botões:
+            wait(100)
+            break
+
+    hub.system.set_stop_button(Button.CENTER)
+    return mapa_hsv
+
 
 if __name__ == "__main__":
     try:    TESTE == True
@@ -111,6 +158,8 @@ if __name__ == "__main__":
         else:     main()
         bipes.final()
       except Exception as e:
-        ERRO(f"{e}")
-        continue
+        if DEBUG: raise e
+        else:
+            ERRO(f"{e}")
+            continue
 
