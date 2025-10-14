@@ -120,15 +120,15 @@ def main():
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código
-    blt.SILENCIOSO = True
+    '''blt.SILENCIOSO = True
     blt.resetar_garra()
     blt.abaixar_garra()
-    testes.imprimir_cor_cubo_para_sempre()
+    testes.imprimir_cor_cubo_para_sempre()'''
 
     global orientacao_estimada, pos_estimada, cores_caçambas
     #cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
     blt.resetar_garra()
-    testes.imprimir_caçamba_para_sempre()
+    #testes.imprimir_caçamba_para_sempre()
     orientacao_estimada = "O"
     descobrir_cor_caçambas()
     return
@@ -564,6 +564,12 @@ def procura(pos_estimada, cores_caçambas):
 
     raise SucessoOuCatástrofe()
 
+def ajustar_dist_caçamba():
+    if (blt.ver_dist_caçamba() > 60):
+        rodas.turn(2.5)
+    if (blt.ver_dist_caçamba() < 45):
+        rodas.turn(-2.5)
+
 def descobrir_cor_caçambas():
     global cores_caçambas
     if not cores_caçambas:
@@ -573,13 +579,25 @@ def descobrir_cor_caçambas():
     rodas.straight(DIST_EIXO_SENSOR_TRAS-10)
     virar_direita()
     achar_nao_verde_alinhado()
-    rodas.straight(DIST_VERDE_CAÇAMBA-10)
+    rodas.straight(DIST_VERDE_CAÇAMBA-20)
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
+        ajustar_dist_caçamba()
         cores_caçambas[i] = blt.ver_cor_caçamba()
+        ajustar_dist_caçamba()
+        if (cores_caçambas[i] == Cor.enum.PRETO or cores_caçambas[i] == Cor.enum.NENHUMA):
+            virar_direita()
+            rodas.turn(5)
+            blt.levantar_garra()
+            andar_ate_bool(lambda: (sensor_dist_frente.distance() < 48, rodas.distance()))
+            blt.abaixar_garra()
+            cores_caçambas[i] = blt.ver_cor_cubo()
+            virar_esquerda()
+            ajustar_dist_caçamba()
         LOG(f"Cor caçamba:", Cor.enum(cores_caçambas[i]))
         #with mudar_velocidade(rodas, 50):
         rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
+    blt.resetar_garra()
 
 class testes:
     @staticmethod
