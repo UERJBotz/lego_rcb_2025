@@ -33,9 +33,10 @@ NUM_CAÇAMBAS = 5
 TAM_CAÇAMBA = 160
 TAM_CUBO = 50
 
-DIST_EIXO_SENSOR = 45
+DIST_EIXO_SENSOR_COR = 45
 DIST_EIXO_SENSOR_FRENTE = 110
 DIST_EIXO_SENSOR_TRAS = 110
+DIST_CENTRO_SENSOR_TRAS = 109 #! checar
 DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
 DIST_EXTRA_CUBO = TAM_CUBO//2
 
@@ -70,7 +71,7 @@ cores_caçambas = []
 def setup():
     global hub, rodas
     global sensor_cor_esq, sensor_cor_dir, sensor_dist_frente
-    global botao_calibrar, orientacao_estimada
+    global botao_calibrar, orientacao_estimada, pos_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
 
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
@@ -107,15 +108,16 @@ def main():
         blt.resetar_garra()
         blt.abaixar_garra()
         posicionamento_inicial()
+        pos_estimada = (0,0)
 
         if not cores_caçambas:
             descobrir_cor_caçambas()
-        pos_estimada = (0,0)
+            pos_estimada = (8,0) #!
 
         achar_nao_verde_alinhado()
         dar_re(TAM_BLOCO//2)
         achar_nao_verde_alinhado()
-        rodas.straight(DIST_EIXO_SENSOR)
+        rodas.straight(DIST_EIXO_SENSOR_COR)
 
         blt.resetar_garra()
         cor, pos_estimada = procura(pos_estimada, cores_caçambas)
@@ -129,9 +131,7 @@ def test():
     blt.SILENCIOSO = True
 
     global orientacao_estimada, pos_estimada, cores_caçambas
-    cores_caçambas = [
-        Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO
-    ]
+    #cores_caçambas = [ Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO ]
     main()
 
 
@@ -207,7 +207,7 @@ def dar_re(dist):
     rodas.straight(-dist)
 
 def dar_re_meio_quarteirao():
-    dar_re(TAM_BLOCO - DIST_EIXO_SENSOR)
+    dar_re(TAM_BLOCO - DIST_EIXO_SENSOR_COR)
     LOG("dar_re_meio_quarteirão: ré")
 
 #! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
@@ -481,7 +481,7 @@ def alinhar_caçambas():
     achar_nao_verde_alinhado()
     LOG("alinhar_caçambas: viu não verde (espera vermelho)")
 
-    dar_re(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR)
+    dar_re(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR_COR)
     dar_meia_volta()
 
 #! isso tá em max_cubos=2 mas na verdade só funciona com 1
@@ -576,39 +576,50 @@ def procura(pos_estimada, cores_caçambas):
 
     raise SucessoOuCatástrofe()
 
-def ajustar_dist_caçamba():
-    if (blt.ver_dist_caçamba() > 60):
-        rodas.turn(2.5)
-    if (blt.ver_dist_caçamba() < 45):
-        rodas.turn(-2.5)
+def ajustar_dist_caçamba(DIST_MAX=60, DIST_MIN=45, GIRO=2.5):
+    if (blt.ver_dist_caçamba() > DIST_MAX): rodas.turn(+GIRO)
+    if (blt.ver_dist_caçamba() < DIST_MIN): rodas.turn(-GIRO)
 
 def descobrir_cor_caçambas():
+    #DIST_ANDAR_RODA = DIST_VERDE_CAÇAMBA + DIST_EIXO_SENSOR_COR
+    #DIST_ANDAR_CAÇAMBA = DIST_ANDAR_RODA - DIST_CENTRO_SENSOR_TRAS - 50
+    DIST_ANDAR_CAÇAMBA = DIST_VERDE_CAÇAMBA-40
+    COMPENSO_INICIAL = DIST_EIXO_SENSOR_TRAS-10
     global cores_caçambas
     if not cores_caçambas:
         cores_caçambas = [Cor.enum.NENHUMA for i in range(NUM_CAÇAMBAS)]
 
     alinhar_caçambas()
-    rodas.straight(DIST_EIXO_SENSOR_TRAS-10)
+    rodas.straight(COMPENSO_INICIAL)
     virar_direita()
     achar_nao_verde_alinhado()
-    rodas.straight(DIST_VERDE_CAÇAMBA-30) #! 20?
+    rodas.straight(DIST_ANDAR_CAÇAMBA)
+
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
         ajustar_dist_caçamba()
         cores_caçambas[i] = blt.ver_cor_caçamba()
-        ajustar_dist_caçamba()
-        if (cores_caçambas[i] == Cor.enum.PRETO or cores_caçambas[i] == Cor.enum.NENHUMA):
+        ajustar_dist_caçamba() #!
+        if cores_caçambas[i] in (Cor.enum.PRETO, Cor.enum.NENHUMA):
             virar_direita()
-            rodas.turn(5)
-            blt.levantar_garra()
+            rodas.turn(5) #!
+
+            blt.resetar_garra()
+            #! dist = ...; andar(dist-48)
             andar_ate_bool(lambda: (sensor_dist_frente.distance() < 48, rodas.distance()))
             blt.abaixar_garra()
             cores_caçambas[i] = blt.ver_cor_cubo()
+
             virar_esquerda()
-            ajustar_dist_caçamba()
-        LOG(f"Cor caçamba:", Cor.enum(cores_caçambas[i]))
-        #with mudar_velocidade(rodas, 50):
-        rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
+            ajustar_dist_caçamba() #!
+
+            if cores_caçambas[i] == Cor.enum.NENHUMA:
+                cores_caçambas[i] = blt.ver_cor_caçamba()
+        LOG(f"descobrir_cor_caçamba:", Cor.enum(cores_caçambas[i]))
+
+        if i+1 < NUM_CAÇAMBAS:
+            rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
+    LOG("descobrir_cor_caçamba: cores_caçambas =", list(map(Cor.enum, cores_caçambas)))
 
 class testes:
     @staticmethod
