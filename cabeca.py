@@ -107,10 +107,15 @@ def main():
         blt.resetar_garra()
         blt.abaixar_garra()
         posicionamento_inicial()
+        pos_estimada = (0,0)
 
         if not cores_caçambas:
             descobrir_cor_caçambas()
-        pos_estimada = (0,0)
+            achar_nao_verde_alinhado()
+            dar_re_meio_quarteirao()
+            virar_esquerda()
+            achar_nao_verde_alinhado()
+            pos_estimada = (8,0)
 
         achar_nao_verde_alinhado()
         dar_re(TAM_BLOCO//2)
@@ -129,9 +134,15 @@ def test():
     blt.SILENCIOSO = True
 
     global orientacao_estimada, pos_estimada, cores_caçambas
-    cores_caçambas = [
-        Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO
-    ]
+    if False:
+        cores_caçambas = [
+            Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO
+        ]
+    if False: orientacao_estimada = "N"
+    if False: orientacao_estimada = "S"
+    if False: orientacao_estimada = "L"
+    if False: orientacao_estimada = "O"
+
     main()
 
 
@@ -429,13 +440,16 @@ def posicionamento_inicial():
 
         bipes.separador()
         dar_re_meio_quarteirao()
-        if   esq.azul() and dir.azul():
+        if   esq.azul() or dir.azul():
+            ASSERT(esq.azul() and dir.azul(), f"pos_ini: {esq} == {dir}")
             orientacao_estimada = "L"
             virar_esquerda()
-        elif esq.beco() and dir.beco():
+        elif esq.beco() or dir.beco():
+            ASSERT(esq.beco() and dir.beco(), f"pos_ini: {esq} == {dir}")
             viu_vermelho = True
             virar_direita()
-        else: # amarelo assumido
+        else:
+            ASSERT(esq.amarelo() or dir.amarelo(), f"pos_ini: {esq} e {dir} assumidos amarelo")
             orientacao_estimada = "O"
             virar_direita()
 
@@ -584,14 +598,19 @@ def descobrir_cor_caçambas():
     alinhar_caçambas()
     rodas.straight(DIST_EIXO_SENSOR_TRAS-10)
     virar_direita()
+
     achar_nao_verde_alinhado()
-    rodas.straight(DIST_VERDE_CAÇAMBA-30)
+    rodas.straight(DIST_VERDE_CAÇAMBA-30) #!40?
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
-        LOG(f"Cor caçamba:", Cor.enum(cores_caçambas[i]))
-        #with mudar_velocidade(rodas, 50):
-        rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
+        dist = blt.ver_dist_caçamba()
+        LOG(f"descobrir_cor_caçamba: caçamba {Cor.enum(cores_caçambas[i])} a {dist/10}cm")
+
+        if i+1 < NUM_CAÇAMBAS:
+            rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
+    LOG("descobrir_cor_caçamba: cores_caçambas =", list(map(Cor.enum, cores_caçambas)))
+
 
 class testes:
     @staticmethod
