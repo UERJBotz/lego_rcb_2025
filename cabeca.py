@@ -40,7 +40,7 @@ TAM_CUBO = 50
 
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
-DIST_VERDE_CAÇAMBA = 60 #73
+DIST_VERDE_CAÇAMBA = 80
 
 PISTA_TODA = TAM_QUARTEIRAO*6
 
@@ -102,36 +102,33 @@ def setup():
 
 def main():
     global orientacao_estimada, pos_estimada
-    blt.resetar_garra()
+    while True:
+        blt.resetar_garra()
+        blt.abaixar_garra()
+        posicionamento_inicial()
 
-    blt.abaixar_garra()
-    posicionamento_inicial()
+        if not cores_caçambas:
+            descobrir_cor_caçambas()
+        pos_estimada = (0,0)
 
-    if not cores_caçambas:
-        descobrir_cor_caçambas()
-    pos_estimada = (0,0)
+        achar_nao_verde_alinhado()
+        rodas.straight(DIST_EIXO_SENSOR)
 
-    achar_nao_verde_alinhado()
-    rodas.straight(DIST_EIXO_SENSOR)
-    cor, pos_estimada = procura(pos_estimada, cores_caçambas)
-    caminho_volta = achar_caminhos(pos_estimada, (0,0))
-    seguir_caminho(caminho_volta)
-    colocar_cubo_na_caçamba(cor)
+        blt.resetar_garra()
+        cor, pos_estimada = procura(pos_estimada, cores_caçambas)
+        caminho_volta = achar_caminhos(pos_estimada, (0,0))
+        seguir_caminho(caminho_volta)
+        colocar_cubo_na_caçamba(cor)
+        dar_re(DIST_VERDE_CAÇAMBA)
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código
     blt.SILENCIOSO = True
-    blt.resetar_garra()
-    blt.abaixar_garra()
-    testes.imprimir_cor_cubo_para_sempre()
 
     global orientacao_estimada, pos_estimada, cores_caçambas
-    #cores_caçambas = [Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO]
-    blt.resetar_garra()
-    testes.imprimir_caçamba_para_sempre()
-    orientacao_estimada = "O"
-    descobrir_cor_caçambas()
-    return
+    cores_caçambas = [
+        Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO
+    ]
     main()
 
 
@@ -504,7 +501,7 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
             virar_direita()
 
             achar_nao_verde_alinhado()
-            rodas.straight(DIST_VERDE_CAÇAMBA)
+            rodas.straight(DIST_VERDE_CAÇAMBA-20)
             blt.abrir_garra()
 
             cubos_caçambas[i] += 1
@@ -537,22 +534,30 @@ def procura(pos_estimada, cores_caçambas):
         _, ori_final = achar_movimentos(restante, orientacao_estimada)
         acertar_orientacao(ori_final)
 
-        rodas.straight(DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
-
-        cor = blt.ver_cor_cubo()
-        if cor == Cor.enum.NENHUMA: # não tem cubo
+        # vê se tem alguma coisa na frente
+        dist = sensor_dist_frente.distance()
+        if dist > TAM_BLOCO: # não tem cubo
             LOG("procura: cel livre")
             tira_obstaculo(cel_destino)
-            rodas.straight(TAM_BLOCO - DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
+            rodas.straight(TAM_BLOCO, then=Stop.COAST)
             cel_atual = cel_destino
             continue
-        if cor not in cores_caçambas:
-            LOG(f"procura: cubo desconhecido cor {cor}")
-            if cor == Cor.enum.BRANCO:
-                bipes.cabeca() #! fazer fora?
-            coloca_obstaculo(cel_destino)
-            dar_re(DIST_CRUZAMENTO_CUBO)
-            continue
+        else: # tem cubo
+            blt.resetar_garra()
+            blt.abaixar_garra()
+            rodas.straight(DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
+
+            cor = blt.ver_cor_cubo()
+            if cor == Cor.enum.NENHUMA: # não tem cubo
+                ASSERT(False) #! ver aqui se ele alinha
+
+            if cor not in cores_caçambas:
+                LOG(f"procura: cubo desconhecido cor {Cor.enum(cor)}")
+                if cor == Cor.enum.BRANCO:
+                    bipes.cabeca() #! fazer fora?
+                coloca_obstaculo(cel_destino)
+                dar_re(DIST_CRUZAMENTO_CUBO)
+                continue
 
         LOG(f"procura: cubo cor {cor}")
         blt.fechar_garra()
@@ -573,7 +578,7 @@ def descobrir_cor_caçambas():
     rodas.straight(DIST_EIXO_SENSOR_TRAS-10)
     virar_direita()
     achar_nao_verde_alinhado()
-    rodas.straight(DIST_VERDE_CAÇAMBA-10)
+    rodas.straight(DIST_VERDE_CAÇAMBA-30)
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
