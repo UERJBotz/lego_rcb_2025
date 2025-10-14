@@ -29,14 +29,15 @@ TAM_QUARTEIRAO = 300
 TAM_BLOCO = TAM_QUARTEIRAO//2
 TAM_FAIXA = 20
 
+NUM_CAÇAMBAS = 5
+TAM_CAÇAMBA = 160
+TAM_CUBO = 50
+
 DIST_EIXO_SENSOR = 45
 DIST_EIXO_SENSOR_FRENTE = 110
 DIST_EIXO_SENSOR_TRAS = 110
 DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
-
-NUM_CAÇAMBAS = 5
-TAM_CAÇAMBA = 160
-TAM_CUBO = 50
+DIST_EXTRA_CUBO = TAM_CUBO//2
 
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
@@ -111,6 +112,8 @@ def main():
             descobrir_cor_caçambas()
         pos_estimada = (0,0)
 
+        achar_nao_verde_alinhado()
+        dar_re(TAM_BLOCO//2)
         achar_nao_verde_alinhado()
         rodas.straight(DIST_EIXO_SENSOR)
 
@@ -536,6 +539,7 @@ def procura(pos_estimada, cores_caçambas):
 
         # vê se tem alguma coisa na frente
         dist = sensor_dist_frente.distance()
+        LOG(f"procura: obj a {dist}mm")
         if dist > TAM_BLOCO: # não tem cubo
             LOG("procura: cel livre")
             tira_obstaculo(cel_destino)
@@ -545,7 +549,7 @@ def procura(pos_estimada, cores_caçambas):
         else: # tem cubo
             blt.resetar_garra()
             blt.abaixar_garra()
-            rodas.straight(DIST_CRUZAMENTO_CUBO, then=Stop.COAST)
+            rodas.straight(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO, then=Stop.COAST)
 
             cor = blt.ver_cor_cubo()
             if cor == Cor.enum.NENHUMA: # não tem cubo
@@ -556,13 +560,16 @@ def procura(pos_estimada, cores_caçambas):
                 if cor == Cor.enum.BRANCO:
                     bipes.cabeca() #! fazer fora?
                 coloca_obstaculo(cel_destino)
+                blt.fechar_garra()
+                dar_re(DIST_EXTRA_CUBO)
+                blt.abrir_garra()
                 dar_re(DIST_CRUZAMENTO_CUBO)
                 continue
 
-        LOG(f"procura: cubo cor {cor}")
+        LOG(f"procura: cubo cor {Cor.enum(cor)}")
         blt.fechar_garra()
         tira_obstaculo(cel_destino)
-        dar_re(DIST_CRUZAMENTO_CUBO)
+        dar_re(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO)
         return cor, cel_atual
 
     imprimir_mapa()
