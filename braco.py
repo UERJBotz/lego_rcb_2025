@@ -157,6 +157,9 @@ if __name__ == "__main__":
         if TESTE: test()
         else:     main()
         bipes.final()
+      except RuntimeError as e:
+        LOG(f"runtime error {e}")
+        continue
       except Exception as e:
         if DEBUG: raise e
         else:

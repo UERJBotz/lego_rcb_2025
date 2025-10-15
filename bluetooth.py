@@ -3,6 +3,7 @@ from comum import globais
 from lib.polyfill import Enum
 from cores import Cor
 
+from comum import ASSERT
 
 SILENCIOSO = False
 
@@ -47,10 +48,13 @@ def esperar_resposta(esperado, canal=TX_BRACO):
     resposta = -1
     if not SILENCIOSO: print(f"esperar_resposta: {rsp(esperado)}")
     while resposta != esperado:
-        resposta = globais.ble.observe(canal) or (None,)
-        if not SILENCIOSO: print(f"esperar_resposta: recebido({canal}) {rsp(resposta[0])}{resposta[1:]}")
-        if resposta is not None:
-            resposta, *args = resposta
+        try:
+            resposta = globais.ble.observe(canal) or (None,)
+            if not SILENCIOSO: print(f"esperar_resposta: recebido({canal}) {rsp(resposta[0])}{resposta[1:]}")
+            if resposta is not None:
+                resposta, *args = resposta
+        except RuntimeError:
+            continue
     if len(args) == 1: return args[0]
     return args
 
