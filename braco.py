@@ -92,7 +92,7 @@ def main():
             elif cor == cores.cor.VERMELHO:
                 cor = cores.identificar(hsv, sensor="frente")
             blt.enviar_comando(blt.rsp.cor_sensor_braco, cor)
-        elif comando == blt.cmd.ver_hsv_cubo:
+        elif comando == blt.cmd.ver_hsv_sensor_braco:
             cor = sensor_cor_frente.hsv()
             blt.enviar_comando(blt.rsp.hsv_sensor_braco, *cores.Color2tuple(cor))
 

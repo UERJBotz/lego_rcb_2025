@@ -104,7 +104,8 @@ def setup():
     return hub
 
 def main():
-    global orientação_estimada, pos_estimada
+    blt.SILENCIOSO = True
+    global orientação_estimada, pos_estimada, cores_caçambas
     while True:
         blt.resetar_garra()
         blt.abaixar_garra()
@@ -118,7 +119,15 @@ def main():
             virar_esquerda()
             achar_nao_verde_alinhado()
             pos_estimada = (8,0)
-
+            if False:
+                cores_caçambas = [Cor.cores.NENHUMA for _ in range(NUM_CAÇAMBAS)]
+                #cores_caçambas[0] = [Cor.cores.NENHUMA]
+                #cores_caçambas[1] = [Cor.cores.NENHUMA]
+                #cores_caçambas[2] = [Cor.cores.NENHUMA]
+                #cores_caçambas[3] = [Cor.cores.NENHUMA]
+                #cores_caçambas[4] = [Cor.cores.NENHUMA]
+                #cores_caçambas[5] = [Cor.cores.NENHUMA]
+            
         achar_nao_verde_alinhado()
         dar_re(TAM_BLOCO//2)
         achar_nao_verde_alinhado()
@@ -657,7 +666,7 @@ class testes:
     def imprimir_cor_cubo_para_sempre():
         blt.SILENCIOSO = True
         while True:
-            hsv = blt.ver_hsv_cubo()
+            hsv = None #blt.ver_hsv_cubo()
             cor = blt.ver_cor_cubo()
             print(f"hsv: {hsv}, cor: {cor}")
 
