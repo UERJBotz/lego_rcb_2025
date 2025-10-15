@@ -135,15 +135,15 @@ def test():
     ... # testar coisas aqui sem mudar o resto do código
     blt.SILENCIOSO = True
 
-    global orientação_estimada, pos_estimada, cores_caçambas
-    if True:
+    global orientacao_estimada, pos_estimada, cores_caçambas
+    if False:
         cores_caçambas = [
             Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO
         ]
-    if False: orientação_estimada = "N"
-    if False: orientação_estimada = "S"
-    if False: orientação_estimada = "L"
-    if False: orientação_estimada = "O"
+    if False: orientacao_estimada = "N"
+    if False: orientacao_estimada = "S"
+    if False: orientacao_estimada = "L"
+    if False: orientacao_estimada = "O"
 
     main()
 
