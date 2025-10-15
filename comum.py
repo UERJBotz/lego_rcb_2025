@@ -70,6 +70,14 @@ class bipes:
     falha      = lambda: (hub.speaker.beep(frequency=800, duration=500), wait(200),
                           hub.speaker.beep(frequency=800, duration=500),)
 
+class luzes:
+    @staticmethod
+    def mostrar(color):
+        if color == Color.BLACK:
+            globais.hub.light.blink(Color.WHITE, [100, 100])
+        else:
+            globais.hub.light.on(color)
+
 class coringa:
     def __init__(self, *args, **kwargs): pass
     def __call__(*args, **kwargs): pass

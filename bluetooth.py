@@ -1,6 +1,7 @@
 from comum import globais
 
 from lib.polyfill import Enum
+from cores import Cor
 
 
 SILENCIOSO = False
@@ -76,14 +77,14 @@ def abaixar_garra():
 
 def ver_cor_cubo():
     #enviar_comando(cmd.ver_cor_sensor_rabo)
-    return esperar_resposta(rsp.cor_sensor_rabo, canal=TX_RABO)
+    return Cor(cor=esperar_resposta(rsp.cor_sensor_rabo, canal=TX_RABO))
 
 def ver_hsv_cubo():
     return ASSERT(False, "o sensor do rabo não consegue ler hsv")
 
 def ver_cor_caçamba():
     enviar_comando(cmd.ver_cor_sensor_braco)
-    return esperar_resposta(rsp.cor_sensor_braco)
+    return Cor(cor=esperar_resposta(rsp.cor_sensor_braco))
 
 def ver_dist_caçamba():
     enviar_comando(cmd.ver_dist_sensor_braco)
