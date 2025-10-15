@@ -1,6 +1,7 @@
 from comum import globais
 
 from lib.polyfill import Enum
+from cores import Cor
 
 
 SILENCIOSO = False
@@ -14,11 +15,11 @@ cmd = Enum("cmd", [
     "abre_garra",
     "levanta_garra",
     "abaixa_garra",
-    "ver_cor_cubo",
-    "ver_hsv_cubo",
-    "ver_distancias",
-    "ver_cor_caçamba",
-    "ver_dist_caçamba",
+    "ver_cor_sensor_braco",
+    "ver_hsv_sensor_braco",
+    "ver_distancias_deprecado", #! retirar quando mexer na ordem, fazer upload em tudo
+    "ver_cor_sensor_rabo",
+    "ver_dist_sensor_braco", #! reordenar
 ])
 
 rsp = Enum("rsp", [
@@ -26,11 +27,11 @@ rsp = Enum("rsp", [
     "abri",
     "levantei",
     "abaixei",
-    "cor_cubo",
-    "hsv_cubo",
-    "distancias",
-    "cor_caçamba",
-    "dist_caçamba",
+    "cor_sensor_braco",
+    "hsv_sensor_braco",
+    "distancias_deprecado", #! retirar quando mexer na ordem, fazer upload em tudo
+    "cor_sensor_rabo",
+    "dist_sensor_braco", #! reordenar
 ])
 
 def enviar_mensagem(*msg, enum):
@@ -75,22 +76,17 @@ def abaixar_garra():
     return esperar_resposta(rsp.abaixei)
 
 def ver_cor_cubo():
-    enviar_comando(cmd.ver_cor_cubo)
-    return esperar_resposta(rsp.cor_cubo)
+    #enviar_comando(cmd.ver_cor_sensor_rabo)
+    return Cor(cor=esperar_resposta(rsp.cor_sensor_rabo, canal=TX_RABO))
 
 def ver_hsv_cubo():
-    enviar_comando(cmd.ver_hsv_cubo)
-    return esperar_resposta(rsp.hsv_cubo)
-
-def ver_distancias():
-    enviar_comando(cmd.ver_distancias)
-    return esperar_resposta(rsp.distancias)
+    return ASSERT(False, "o sensor do rabo não consegue ler hsv")
 
 def ver_cor_caçamba():
-    #enviar_comando(cmd.ver_cor_caçamba)
-    return esperar_resposta(rsp.cor_caçamba, canal=TX_RABO)
+    enviar_comando(cmd.ver_cor_sensor_braco)
+    return Cor(cor=esperar_resposta(rsp.cor_sensor_braco))
 
 def ver_dist_caçamba():
-    enviar_comando(cmd.ver_dist_caçamba)
-    return esperar_resposta(rsp.dist_caçamba)
+    enviar_comando(cmd.ver_dist_sensor_braco)
+    return esperar_resposta(rsp.dist_sensor_braco)
 

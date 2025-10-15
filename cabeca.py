@@ -17,9 +17,11 @@ import cores
 
 from cores import Cor
 
-from comum import globais, bipes
+from comum import globais, bipes, luzes
 from comum import LOG, ERRO, ASSERT
 
+
+NUM_CUBOS_PEGÁVEIS = 2
 
 VEL_ALINHAR = 80
 VEL_ANG_ALINHAR = 20
@@ -70,7 +72,7 @@ cores_caçambas = []
 def setup():
     global hub, rodas
     global sensor_cor_esq, sensor_cor_dir, sensor_dist_frente
-    global botao_calibrar, orientacao_estimada
+    global botao_calibrar, orientação_estimada
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
 
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
@@ -79,7 +81,7 @@ def setup():
     hub.system.set_stop_button(Button.CENTER)
     globais.init(hub, TESTE, DEBUG, nome="cabeça")
 
-    orientacao_estimada = ""
+    orientação_estimada = ""
 
     sensor_dist_frente = UltrasonicSensor(Port.F)
     sensor_cor_esq = ColorSensor(Port.D)
@@ -102,7 +104,7 @@ def setup():
     return hub
 
 def main():
-    global orientacao_estimada, pos_estimada
+    global orientação_estimada, pos_estimada
     while True:
         blt.resetar_garra()
         blt.abaixar_garra()
@@ -168,8 +170,8 @@ class mudar_velocidade():
     def __exit__(self, exc_type, exc_value, exc_traceback): 
         self.rodas.settings(*self.conf_anterior)
 
-def inverte_orientacao(ori=None):
-    if ori == None: ori = orientacao_estimada
+def inverte_orientação(ori=None):
+    if ori == None: ori = orientação_estimada
 
     if ori == "N": return "S"
     if ori == "S": return "N"
@@ -179,31 +181,31 @@ def inverte_orientacao(ori=None):
     return ori #!< não é pra chegar aqui
 
 def dar_meia_volta():
-    global orientacao_estimada
+    global orientação_estimada
     rodas.turn(180)
 
-    orientacao_estimada = inverte_orientacao()
-    LOG(f"dar_meia_volta: {orientacao_estimada=}")
-    
+    orientação_estimada = inverte_orientação()
+    LOG(f"dar_meia_volta: {orientação_estimada=}")
+
 def virar_direita():
-    global orientacao_estimada
+    global orientação_estimada
     rodas.turn(90)
 
-    if   orientacao_estimada == "N": orientacao_estimada = "L"
-    elif orientacao_estimada == "S": orientacao_estimada = "O"
-    elif orientacao_estimada == "L": orientacao_estimada = "S"
-    elif orientacao_estimada == "O": orientacao_estimada = "N"
-    LOG(f"virar_direita: {orientacao_estimada=}")
+    if   orientação_estimada == "N": orientação_estimada = "L"
+    elif orientação_estimada == "S": orientação_estimada = "O"
+    elif orientação_estimada == "L": orientação_estimada = "S"
+    elif orientação_estimada == "O": orientação_estimada = "N"
+    LOG(f"virar_direita: {orientação_estimada=}")
 
 def virar_esquerda():
-    global orientacao_estimada
+    global orientação_estimada
     rodas.turn(-90)
 
-    if   orientacao_estimada == "N": orientacao_estimada = "O"
-    elif orientacao_estimada == "S": orientacao_estimada = "L"
-    elif orientacao_estimada == "L": orientacao_estimada = "N"
-    elif orientacao_estimada == "O": orientacao_estimada = "S"
-    LOG(f"virar_esquerda: {orientacao_estimada=}")
+    if   orientação_estimada == "N": orientação_estimada = "O"
+    elif orientação_estimada == "S": orientação_estimada = "L"
+    elif orientação_estimada == "L": orientação_estimada = "N"
+    elif orientação_estimada == "O": orientação_estimada = "S"
+    LOG(f"virar_esquerda: {orientação_estimada=}")
 
 DIST_PARAR=0.4 #! checar valor
 def parar():
@@ -229,7 +231,7 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
 
 def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
-    LOG(f"ver_não_verde: {esq}, {dir}")
+    if not esq.verde() or not dir.verde(): LOG(f"ver_não_verde: {esq}, {dir}")
     return ((not esq.area_livre() or not dir.area_livre()), esq, dir)
 
 def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
@@ -373,6 +375,10 @@ def alinhar(max_tentativas=4, virar=True, #! virar=False?
                 rodas.turn(-ang)
                 dar_re(dist)
                 rodas.turn(ang)
+    #! às vezes ele retorna como verde verde, tentei fazer isso pra resolver
+    #if extra == (Cor.enum.VERDE, Cor.enum.VERDE):
+    #    LOG("alinhar: vou na fé")
+    #    return achar_nao_verde()
     return extra
 
 def alinha_re(max_tentativas=3,
@@ -418,31 +424,42 @@ def seguir_caminho(caminho): #! lidar com outras coisas
             interpretar_movimento(mov)
             yield rodas.distance()
 
-    movs, ori_final = achar_movimentos(caminho, orientacao_estimada)
+    movs, ori_final = achar_movimentos(caminho, orientação_estimada)
     #LOG(*(tipo_movimento(mov) for mov in movs))
 
     for _ in interpretar_caminho(movs):
         while not rodas.done(): pass
 
-    acertar_orientacao(ori_final)
+    acertar_orientação(ori_final)
 
-def acertar_orientacao(ori):
-    while orientacao_estimada != ori:
-        LOG(f"{orientacao_estimada=}, {ori=}")
-        virar_direita()
+def acertar_orientação(ori):
+    if True:
+        cardinais = ["N", "L", "S", "O"]
+        idx_ori_final = cardinais.index(ori)
+        idx_ori_atual = cardinais.index(orientação_estimada)
+
+        idx_diff = ((idx_ori_atual - idx_ori_final) % len(cardinais)) - 2
+        if idx_diff == -2: return
+        if idx_diff == -1: virar_esquerda()
+        if idx_diff ==  0: dar_meia_volta()
+        if idx_diff ==  1: virar_direita()
+    else:
+        while orientacao_estimada != ori:
+            LOG(f"{orientacao_estimada=}, {ori=}")
+            virar_direita()
 
 def posicionamento_inicial():
-    global orientacao_estimada
+    global orientação_estimada
 
     viu_vermelho = False
-    while not (viu_vermelho and orientacao_estimada == "L"):
+    while not (viu_vermelho and orientação_estimada == "L"):
         esq, dir = achar_nao_verde_alinhado()
 
         bipes.separador()
         dar_re_meio_quarteirao()
         if   esq.azul() or dir.azul():
             ASSERT(esq.azul() and dir.azul(), f"pos_ini: {esq} == {dir}")
-            orientacao_estimada = "L"
+            orientação_estimada = "L"
             virar_esquerda()
         elif esq.beco() or dir.beco():
             ASSERT(esq.beco() and dir.beco(), f"pos_ini: {esq} == {dir}")
@@ -450,30 +467,8 @@ def posicionamento_inicial():
             virar_direita()
         else:
             ASSERT(esq.amarelo() or dir.amarelo(), f"pos_ini: {esq} e {dir} assumidos amarelo")
-            orientacao_estimada = "O"
+            orientação_estimada = "O"
             virar_direita()
-
-#! considerar inimigo
-def procura_inicial(xy, caçambas):
-    entra_primeira_rua()
-
-    x, _ = xy #! para procura genérico, usar y também
-    i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
-    while i == 2:
-        x += 2 #! para procura genérico, considerar orientação
-        i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
-    ASSERT(i == 1, "procura inicial: deveria ser impossível andar demais")
-
-    cor = extra
-    if cor in caçambas:
-        pegar_cubo()
-        dar_re_até_verde(xy)
-        #! fazer_caminho_contrário() #! voltar_para_verde(xy)
-        return cor, xy
-    else:
-        fazer_caminho_contrário() #! voltar_para_verde(xy)
-        xy = andar_1_quarteirão_no_eixo_y(xy)
-        return procura_inicial(xy, caçambas)
 
 #começar da linha ate dist caçamba i - dist traseira ate sensor
 def alinhar_caçambas(): 
@@ -482,10 +477,8 @@ def alinhar_caçambas():
     aí vira e vai reto até o vermelho,
     depois vira pro lado contrário (direção das caçambas)
     """
-    if (orientacao_estimada == "L"): dar_meia_volta()
-    if (orientacao_estimada == "S"): virar_direita()
-    if (orientacao_estimada == "N"): virar_esquerda()
-    ASSERT(orientacao_estimada == "O", "alinhar_caçambas: é pra ser oeste!")
+    acertar_orientação("O")
+    ASSERT(orientação_estimada == "O", "alinhar_caçambas: é pra ser oeste!")
 
     achar_nao_verde_alinhado()
     LOG("alinhar_caçambas: viu não verde (espera amarelo)")
@@ -498,8 +491,7 @@ def alinhar_caçambas():
     dar_re(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR)
     dar_meia_volta()
 
-#! isso tá em max_cubos=2 mas na verdade só funciona com 1
-def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
+def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS): #! suportar 3 cubos rs
     global cubos_caçambas
     margem      = TAM_CUBO//2 if max_cubos != 1 else (TAM_CUBO*3)//2
     espaçamento = TAM_CUBO    if max_cubos == 2 else 0
@@ -526,15 +518,44 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=2): #! suportar 2 e 3 cubos rs
 
     raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
 
- #! tá empurrando
+#! considerar adversário
+def procura_inicial(xy, caçambas):
+    entra_primeira_rua()
+
+    x, _ = xy #! para procura genérico, usar y também
+    i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
+    while i == 2:
+        x += 2 #! para procura genérico, considerar orientação
+        i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
+    ASSERT(i == 1, "procura inicial: deveria ser impossível andar demais")
+
+    cor = extra
+    if cor in caçambas:
+        pegar_cubo()
+        dar_re_até_verde(xy)
+        #! fazer_caminho_contrário() #! voltar_para_verde(xy)
+        return cor, xy
+    else:
+        fazer_caminho_contrário() #! voltar_para_verde(xy)
+        xy = andar_1_quarteirão_no_eixo_y(xy)
+        return procura_inicial(xy, caçambas)
+
+def partial(func, *args, **kwargs):
+    return lambda *a, **kw: func(*args, *a, **kwargs, **kw)
+
+#! tá empurrando?
 def procura(pos_estimada, cores_caçambas):
     cel_incertas = pegar_celulas_incertas()
     cel_atual = pos_estimada
 
-    #! ordenar lista com o a_estrela
+    caminhos_incertas = {
+        cel: achar_caminhos(cel_atual, cel) for cel in cel_incertas
+    }
+    cel_incertas.sort(key=lambda x: (
+        len(caminhos_incertas[x]) if caminhos_incertas[x] is not None else 9000
+    ))
     for cel_destino in cel_incertas:
         LOG("tentando de", cel_atual, "até :", cel_destino)
-        imprimir_mapa()
 
         caminho = achar_caminhos(cel_atual, cel_destino)
         if not caminho:
@@ -548,14 +569,14 @@ def procura(pos_estimada, cores_caçambas):
 
         # acerta orientação para como se tivesse andado tudo
         restante = [cel_atual, cel_destino]
-        _, ori_final = achar_movimentos(restante, orientacao_estimada)
-        acertar_orientacao(ori_final)
+        _, ori_final = achar_movimentos(restante, orientação_estimada)
+        acertar_orientação(ori_final)
 
         # vê se tem alguma coisa na frente
         dist = sensor_dist_frente.distance()
         LOG(f"procura: obj a {dist}mm")
         if dist > TAM_BLOCO: # não tem cubo
-            LOG("procura: cel livre")
+            LOG("procura: cel livre viu dist longe")
             tira_obstaculo(cel_destino)
             rodas.straight(TAM_BLOCO, then=Stop.COAST)
             cel_atual = cel_destino
@@ -566,13 +587,18 @@ def procura(pos_estimada, cores_caçambas):
             rodas.straight(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO, then=Stop.COAST)
 
             cor = blt.ver_cor_cubo()
-            if cor == Cor.enum.NENHUMA: # não tem cubo
-                ASSERT(False) #! ver aqui se ele alinha
-
-            if cor not in cores_caçambas:
-                LOG(f"procura: cubo desconhecido cor {Cor.enum(cor)}")
-                if cor == Cor.enum.BRANCO:
-                    bipes.cabeca() #! fazer fora?
+            luzes.mostrar(cor.color)
+            if cor == Cor.enum.BRANCO:
+                bipes.cabeca()
+            if cor == Cor.enum.NENHUMA:
+                LOG("procura: cel livre viu NENHUM")
+                tira_obstaculo(cel_destino)
+                rodas.straight(TAM_BLOCO, then=Stop.COAST)
+                cel_atual = cel_destino
+                continue
+            if ((cor not in cores_caçambas) or
+                (cubos_caçambas[cores_caçambas.index(cor)] >= NUM_CUBOS_PEGÁVEIS)):
+                LOG(f"procura: cubo desconhecido cor {cor}")
                 coloca_obstaculo(cel_destino)
                 blt.fechar_garra()
                 dar_re(DIST_EXTRA_CUBO)
@@ -580,7 +606,9 @@ def procura(pos_estimada, cores_caçambas):
                 dar_re(DIST_CRUZAMENTO_CUBO)
                 continue
 
-        LOG(f"procura: cubo cor {Cor.enum(cor)}")
+            imprimir_mapa()
+
+        LOG(f"procura: cubo cor {cor}")
         blt.fechar_garra()
         tira_obstaculo(cel_destino)
         dar_re(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO)
@@ -593,7 +621,7 @@ def procura(pos_estimada, cores_caçambas):
 def descobrir_cor_caçambas():
     global cores_caçambas
     if not cores_caçambas:
-        cores_caçambas = [Cor.enum.NENHUMA for i in range(NUM_CAÇAMBAS)]
+        cores_caçambas = [Cor(cor=Cor.enum.NENHUMA) for i in range(NUM_CAÇAMBAS)]
 
     alinhar_caçambas()
     rodas.straight(DIST_EIXO_SENSOR_TRAS-10)
@@ -605,7 +633,7 @@ def descobrir_cor_caçambas():
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
         dist = blt.ver_dist_caçamba()
-        LOG(f"descobrir_cor_caçamba: caçamba {Cor.enum(cores_caçambas[i])} a {dist/10}cm")
+        LOG(f"descobrir_cor_caçamba: caçamba {cores_caçambas[i]} a {dist/10}cm")
 
         if i+1 < NUM_CAÇAMBAS:
             rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
@@ -617,7 +645,7 @@ class testes:
     def imprimir_cor_caçamba_para_sempre():
         while True:
             cor = blt.ver_cor_caçamba()
-            print(Cor.enum(cor))
+            print(cor)
 
     @staticmethod
     def imprimir_dist_caçamba_pra_sempre():
@@ -631,7 +659,7 @@ class testes:
         while True:
             hsv = blt.ver_hsv_cubo()
             cor = blt.ver_cor_cubo()
-            print(f"hsv: {hsv}, cor: {Cor.enum(cor)}")
+            print(f"hsv: {hsv}, cor: {cor}")
 
     @staticmethod
     def imprimir_caçamba_para_sempre():
@@ -639,7 +667,7 @@ class testes:
         while True:
             dist = blt.ver_dist_caçamba()
             cor  = blt.ver_cor_caçamba()
-            print(f"dist: {dist}, cor: {Cor.enum(cor)}")
+            print(f"dist: {dist}, cor: {cor}")
 
 if __name__ == "__main__":
     try:    TESTE == True

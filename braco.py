@@ -82,8 +82,8 @@ def main():
                 garra.abaixa_garra()
                 garra_levantada = False
             blt.enviar_comando(blt.rsp.abaixei)
-            
-        elif comando == blt.cmd.ver_cor_cubo: #! isso é uma gambiarrinha, devia tar em Cor
+
+        elif comando == blt.cmd.ver_cor_sensor_braco: #! isso é uma gambiarrinha, devia tar em Cor
             cor = sensor_cor_frente.color()
             cor = cores.Color2cor(cor)
             hsv = sensor_cor_frente.hsv()
@@ -91,14 +91,14 @@ def main():
                 cor = cores.identificar(hsv, sensor="frente")#"chao")
             elif cor == cores.cor.VERMELHO:
                 cor = cores.identificar(hsv, sensor="frente")
-            blt.enviar_comando(blt.rsp.cor_cubo, cor)
+            blt.enviar_comando(blt.rsp.cor_sensor_braco, cor)
         elif comando == blt.cmd.ver_hsv_cubo:
             cor = sensor_cor_frente.hsv()
-            blt.enviar_comando(blt.rsp.hsv_cubo, *cores.Color2tuple(cor))
+            blt.enviar_comando(blt.rsp.hsv_sensor_braco, *cores.Color2tuple(cor))
 
-        elif comando == blt.cmd.ver_dist_caçamba:
+        elif comando == blt.cmd.ver_dist_sensor_braco:
             dist = sensor_dist_dir.distance()
-            blt.enviar_comando(blt.rsp.dist_caçamba, dist)
+            blt.enviar_comando(blt.rsp.dist_sensor_braco, dist)
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código

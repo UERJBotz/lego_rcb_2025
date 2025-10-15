@@ -38,26 +38,25 @@ class Cor:
         yield self.hsv
 
     def __eq__(self, other): #! testar
-        if isinstance(other, Color):
-            if other == self.color: return True
-        if isinstance(other, tuple):
-            if other == self.hsv: return True
-        if isinstance(other, int): #! enum cor
-            if other == self.cor: return True
-        #! retornar comparação direto?
+        if other is self: return True
 
-        #! será que devia confiar no identificar?
-        return ((other == self.color) or (other == self.hsv) or
-                (identificar(other) == identificar(self.hsv)))
+        #! Color não é uma classe aqui (???) mas Color.X são instâncias da classe Color
+        if isinstance(other, type(Color.BLACK)): return other == self.color
+        if isinstance(other, tuple):             return other == self.hsv
+        if isinstance(other, int):               return other == self.cor #! enum cor
+        #! será que devia usar o identificar?
 
     def __str__(self):
         return f"{self.enum(self.cor)}[{self.h}, {self.s}, {self.v}]"
 
-    def vermelho(self): return (self.color == Color.RED)
-    def verde(self):    return (self.color == Color.GREEN)
-    def branco(self):   return (self.color == Color.WHITE)
     def preto(self):    return (self.color == Color.PRETO)
     def azul(self):     return (self.color == Color.BLUE)
+    def verde(self):    return (self.color == Color.GREEN)
+    def amarelo(self):  return ((self.color == Color.YELLOW) or
+                                (self.color == Color.WHITE))
+    def vermelho(self): return (self.color == Color.RED)
+    def branco(self):   return (self.color == Color.WHITE)
+    def marrom(self):   return (self.color == Color.BROWN)
 
     def area_livre(self): return self.verde()
     def pista(self):      return self.branco() or self.verde()
