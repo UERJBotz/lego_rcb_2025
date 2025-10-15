@@ -114,9 +114,16 @@ def main():
 
         if not cores_caçambas:
             descobrir_cor_caçambas()
+
+            acertar_orientação("L")
+            achar_azul_alinhado()
+            dar_re_meio_quarteirao()
+
+            acertar_orientação("S")
             achar_nao_verde_alinhado()
             dar_re_meio_quarteirao()
-            virar_esquerda()
+
+            acertar_orientação("L")
             achar_nao_verde_alinhado()
             pos_estimada = (8,0)
             if False:
@@ -127,7 +134,7 @@ def main():
                 #cores_caçambas[3] = [Cor.cores.NENHUMA]
                 #cores_caçambas[4] = [Cor.cores.NENHUMA]
                 #cores_caçambas[5] = [Cor.cores.NENHUMA]
-            
+
         achar_nao_verde_alinhado()
         dar_re(TAM_BLOCO//2)
         achar_nao_verde_alinhado()
@@ -142,7 +149,11 @@ def main():
 
 def test():
     ... # testar coisas aqui sem mudar o resto do código
-    blt.SILENCIOSO = True
+    blt.SILENCIOSO = False#True
+
+    blt.resetar_garra()
+    blt.abaixar_garra()
+    testes.imprimir_cor_cubo_para_sempre()
 
     global orientacao_estimada, pos_estimada, cores_caçambas
     if False:
@@ -246,7 +257,7 @@ def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
 def verificar_cor(func_cor) -> Callable[None, tuple[bool, int]]: # type: ignore
     def f():
         esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
-        return (func_cor(*esq) or func_cor(*dir), esq, dir)
+        return (func_cor(esq) or func_cor(dir), esq, dir)
     return f
 
 
@@ -297,6 +308,14 @@ def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignor
 
 def achar_nao_verde() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
     return cor_final(andar_ate_idx(ver_nao_verde))
+
+def achar_azul() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
+    return cor_final(andar_ate_idx(verificar_cor(Cor.azul)))
+
+def achar_azul_alinhado():
+    achar_azul()
+    dar_re(TAM_FAIXA) #!//2?
+    return alinhar()#alinha_giro() #
 
 def achar_nao_verde_alinhado():
     achar_nao_verde()
@@ -637,7 +656,7 @@ def descobrir_cor_caçambas():
     virar_direita()
 
     achar_nao_verde_alinhado()
-    rodas.straight(DIST_VERDE_CAÇAMBA-30) #!40?
+    rodas.straight(DIST_VERDE_CAÇAMBA-45) #! tá muito longe!
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
@@ -646,7 +665,7 @@ def descobrir_cor_caçambas():
 
         if i+1 < NUM_CAÇAMBAS:
             rodas.straight(TAM_CAÇAMBA+DIST_CAÇAMBA)
-    LOG("descobrir_cor_caçamba: cores_caçambas =", list(map(Cor.enum, cores_caçambas)))
+    LOG(f"descobrir_cor_caçamba: cores_caçambas = {cores_caçambas}")
 
 
 class testes:

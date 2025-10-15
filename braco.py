@@ -16,11 +16,12 @@ import garra
 #! se a gente girar a garra na mão, mesmo resetando a cabeça, o estado da garra no braço se mantém e a gente se fode.
 
 def setup():
-    global garra_fechada, garra_levantada
+    global garra_fechada, garra_levantada, garra_altura_sensor
     global sensor_cor_frente, sensor_dist_dir
 
     garra_levantada = False
     garra_fechada   = False
+    garra_altura_sensor = False
 
     hub = PrimeHub(broadcast_channel=blt.TX_BRACO,
                    observe_channels=[blt.TX_CABECA])
@@ -45,7 +46,7 @@ def setup():
     return hub
 
 def main():
-    global garra_fechada, garra_levantada
+    global garra_fechada, garra_levantada, garra_altura_sensor
 
     cmd = None
     while True:
@@ -82,6 +83,13 @@ def main():
                 garra.abaixa_garra()
                 garra_levantada = False
             blt.enviar_comando(blt.rsp.abaixei)
+
+        elif comando == blt.cmd.levanta_garra_dist_sensor:
+            if not garra_levantada and not garra_altura_sensor:
+                LOG("levantando")
+                garra.levanta_garra_dist_sensor()
+                garra_altura_sensor = True
+            blt.enviar_comando(blt.rsp.levantei_dist_sensor)
 
         elif comando == blt.cmd.ver_cor_sensor_braco: #! isso é uma gambiarrinha, devia tar em Cor
             cor = sensor_cor_frente.color()
