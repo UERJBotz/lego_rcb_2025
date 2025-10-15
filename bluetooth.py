@@ -3,6 +3,7 @@ from comum import globais
 from lib.polyfill import Enum
 from cores import Cor
 
+from comum import ASSERT
 
 SILENCIOSO = False
 
@@ -20,6 +21,7 @@ cmd = Enum("cmd", [
     "ver_distancias_deprecado", #! retirar quando mexer na ordem, fazer upload em tudo
     "ver_cor_sensor_rabo",
     "ver_dist_sensor_braco", #! reordenar
+    "levanta_garra_dist_sensor", #! reordenar
 ])
 
 rsp = Enum("rsp", [
@@ -32,6 +34,7 @@ rsp = Enum("rsp", [
     "distancias_deprecado", #! retirar quando mexer na ordem, fazer upload em tudo
     "cor_sensor_rabo",
     "dist_sensor_braco", #! reordenar
+    "levantei_dist_sensor", #! reordenar
 ])
 
 def enviar_mensagem(*msg, enum):
@@ -47,10 +50,13 @@ def esperar_resposta(esperado, canal=TX_BRACO):
     resposta = -1
     if not SILENCIOSO: print(f"esperar_resposta: {rsp(esperado)}")
     while resposta != esperado:
-        resposta = globais.ble.observe(canal) or (None,)
-        if not SILENCIOSO: print(f"esperar_resposta: recebido({canal}) {rsp(resposta[0])}{resposta[1:]}")
-        if resposta is not None:
-            resposta, *args = resposta
+        try:
+            resposta = globais.ble.observe(canal) or (None,)
+            if not SILENCIOSO: print(f"esperar_resposta: recebido({canal}) {rsp(resposta[0])}{resposta[1:]}")
+            if resposta is not None:
+                resposta, *args = resposta
+        except RuntimeError:
+            continue
     if len(args) == 1: return args[0]
     return args
 
@@ -70,6 +76,10 @@ def abrir_garra():
 def levantar_garra():
     enviar_comando(cmd.levanta_garra)
     return esperar_resposta(rsp.levantei)
+
+def levantar_garra_dist_sensor():
+    enviar_comando(cmd.levanta_garra_dist_sensor)
+    return esperar_resposta(rsp.levantei_dist_sensor)
 
 def abaixar_garra():
     enviar_comando(cmd.abaixa_garra)
