@@ -39,7 +39,7 @@ DIST_EIXO_SENSOR = 45
 DIST_EIXO_SENSOR_FRENTE = 110
 DIST_EIXO_SENSOR_TRAS = 110
 DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
-DIST_EXTRA_CUBO = TAM_CUBO//2
+DIST_EXTRA_CUBO = 0 #TAM_CUBO//2
 
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
@@ -153,6 +153,10 @@ def test():
 
     blt.resetar_garra()
     blt.abaixar_garra()
+    while True:
+        blt.abrir_garra()
+        ang = blt.fechar_garra() #...
+        print(ang)
     testes.imprimir_cor_cubo_para_sempre()
 
     global orientacao_estimada, pos_estimada, cores_caçambas
@@ -601,43 +605,40 @@ def procura(pos_estimada, cores_caçambas):
         acertar_orientação(ori_final)
 
         # vê se tem alguma coisa na frente
-        dist = sensor_dist_frente.distance()
-        LOG(f"procura: obj a {dist}mm")
-        if dist > TAM_BLOCO: # não tem cubo
-            LOG("procura: cel livre viu dist longe")
+        blt.resetar_garra()
+        blt.abaixar_garra()
+        rodas.straight(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO, then=Stop.COAST)
+        ang = blt.fechar_garra()
+        if ang > 145:
+            LOG("procura: cel livre fechou tudo")
             tira_obstaculo(cel_destino)
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
+            rodas.straight(TAM_BLOCO - DIST_CRUZAMENTO_CUBO - DIST_EXTRA_CUBO, then=Stop.COAST)
+            cel_atual = cel_destino
+            blt.abrir_garra()
+            continue
+
+        cor = blt.ver_cor_cubo()
+        luzes.mostrar(cor.color) #! fzr printar em braco
+        if cor == Cor.enum.BRANCO:
+            bipes.cabeca()
+        if cor == Cor.enum.NENHUMA:
+            LOG("procura: cel livre viu NENHUM")
+            tira_obstaculo(cel_destino)
+            rodas.straight(TAM_BLOCO - DIST_CRUZAMENTO_CUBO - DIST_EXTRA_CUBO, then=Stop.COAST)
             cel_atual = cel_destino
             continue
-        else: # tem cubo
-            blt.resetar_garra()
-            blt.abaixar_garra()
-            rodas.straight(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO, then=Stop.COAST)
+        if ((cor not in cores_caçambas) or
+            (cubos_caçambas[cores_caçambas.index(cor)] >= NUM_CUBOS_PEGÁVEIS)):
+            LOG(f"procura: cubo desconhecido cor {cor}")
+            coloca_obstaculo(cel_destino)
+            dar_re(DIST_EXTRA_CUBO)
+            blt.abrir_garra()
+            dar_re(DIST_CRUZAMENTO_CUBO)
+            continue
 
-            cor = blt.ver_cor_cubo()
-            luzes.mostrar(cor.color)
-            if cor == Cor.enum.BRANCO:
-                bipes.cabeca()
-            if cor == Cor.enum.NENHUMA:
-                LOG("procura: cel livre viu NENHUM")
-                tira_obstaculo(cel_destino)
-                rodas.straight(TAM_BLOCO, then=Stop.COAST)
-                cel_atual = cel_destino
-                continue
-            if ((cor not in cores_caçambas) or
-                (cubos_caçambas[cores_caçambas.index(cor)] >= NUM_CUBOS_PEGÁVEIS)):
-                LOG(f"procura: cubo desconhecido cor {cor}")
-                coloca_obstaculo(cel_destino)
-                blt.fechar_garra()
-                dar_re(DIST_EXTRA_CUBO)
-                blt.abrir_garra()
-                dar_re(DIST_CRUZAMENTO_CUBO)
-                continue
-
-            imprimir_mapa()
+        imprimir_mapa()
 
         LOG(f"procura: cubo cor {cor}")
-        blt.fechar_garra()
         tira_obstaculo(cel_destino)
         dar_re(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO)
         return cor, cel_atual

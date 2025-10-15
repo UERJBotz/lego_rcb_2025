@@ -61,9 +61,9 @@ def main():
         if   comando == blt.cmd.fecha_garra:
             if not garra_fechada:
                 LOG("fechando")
-                garra.fecha_garra()
+                ang = garra.fecha_garra()
                 garra_fechada = True
-            blt.enviar_comando(blt.rsp.fechei)
+            blt.enviar_comando(blt.rsp.fechei, ang)
         elif comando == blt.cmd.abre_garra:
             if garra_fechada:
                 LOG("abrindo")

@@ -40,6 +40,9 @@ class Cor:
     def __eq__(self, other): #! testar
         if other is self: return True
 
+        if isinstance(other, Cor):
+            return other.hsv == self.hsv and other.cor == self.cor
+
         #! Color não é uma classe aqui (???) mas Color.X são instâncias da classe Color
         if isinstance(other, type(Color.BLACK)): return other == self.color
         if isinstance(other, tuple):             return other == self.hsv

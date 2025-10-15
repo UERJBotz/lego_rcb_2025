@@ -17,7 +17,9 @@ ANG_AJUSTE_SENSOR = DIST_AJUSTE_SENSOR*RAIO_ENGRENAGEM
 
 def fecha_garra(vel=240):
     globais.motor_garra.run_until_stalled(vel, then=Stop.COAST, duty_limit=None)
+    ang = globais.motor_garra.angle()
     globais.motor_garra.run_angle(vel, 30, then=Stop.COAST, wait=False)
+    return ang
 
 def abre_garra(vel=240, ang_volta=60): #ang_volta=72
     globais.motor_garra.run_angle(vel, -ang_volta, then=Stop.COAST, wait=True)
