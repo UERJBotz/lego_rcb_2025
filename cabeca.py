@@ -147,12 +147,38 @@ def main():
 def test():
     global orientação_estimada, pos_estimada, cores_caçambas
     ... # testar coisas aqui sem mudar o resto do código
-    blt.SILENCIOSO = True
-    posicionamento_inicial()
-    alinhar_caçambas()
-    descobrir_cor_caçambas()
-    blt.resetar_garra()
-    blt.abaixar_garra()
+
+    while False:
+        esq    = sensor_cor_esq.reflection()
+        centro = sensor_cor_centro.reflection()
+        dir    = sensor_cor_dir.reflection()
+        print(esq, centro, dir)
+
+    global mul_direção_seguir_linha
+    while True:
+        if False: vel = 70
+        else:     vel, *_ = rodas.settings()
+
+        for _ in range(5):
+            #curva_linha_esquerda() #!??? tá trocado e acho que funcionou
+            achar_cruzamento(vel)
+            bipes.separador()
+            mul_direção_seguir_linha = -1
+            rodas.curve(DIST_EIXO_SENSOR, -90)
+
+        #curva_linha_esquerda()
+        achar_cruzamento(vel)
+        bipes.separador()
+        mul_direção_seguir_linha = +1
+        rodas.curve(DIST_EIXO_SENSOR, -90)
+
+        #curva_linha_direita()
+        achar_cruzamento(vel)
+        bipes.separador()
+        mul_direção_seguir_linha = -1
+        rodas.curve(DIST_EIXO_SENSOR, 90)
+
+
     while True:
         blt.abrir_garra()
         ang = blt.fechar_garra() #...
@@ -177,8 +203,8 @@ class mudar_velocidade():
     1. mudar a velocidade do robô
     2. restaurar a velocidade do robô
     """
-    def __init__(self, rodas, vel, vel_ang=None): 
-        self.rodas = rodas
+    def __init__(self, vel, vel_ang=None, drive_base=None): 
+        self.rodas = drive_base or rodas
         self.vel   = vel
         self.vel_ang = vel_ang
  
@@ -329,6 +355,29 @@ def achar_nao_verde_alinhado():
     dar_re(TAM_FAIXA) #!//2?
     return alinhar()#alinha_giro() #
 
+mul_direção_seguir_linha = 1
+def achar_cruzamento(vel):
+    REFL_MAX = 99
+    REFL_MIN = 13
+    REFL_IDEAL = (REFL_MAX + REFL_MIN)/2
+
+    def preto(val):
+        return val <= REFL_MIN + 5
+
+    kp = .50
+    while True:
+        esq    = sensor_cor_esq.reflection()
+        centro = sensor_cor_centro.reflection()
+        dir    = sensor_cor_dir.reflection()
+
+        erro = REFL_IDEAL - centro
+        ang  = mul_direção_seguir_linha*(erro*kp)
+        rodas.drive(vel, ang)
+
+        if preto(esq) and preto(dir): break
+
+    rodas.stop()
+
 
 def alinha_parede(vel, vel_ang, giro_max=45,
                   func_cor_pista=Cor.area_livre,
@@ -341,7 +390,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
     alinhado_pista  = lambda esq, dir: func_cor_pista(esq) and func_cor_pista(dir)
     alinhado_parede = lambda esq, dir: alinhado_nao_pista(esq, dir) and not desalinhado_branco(esq, dir)
 
-    with mudar_velocidade(rodas, vel, vel_ang):
+    with mudar_velocidade(vel, vel_ang):
         parou, extra = andar_ate_idx(func_parar_andar, dist_max=TAM_BLOCO)
         if not parou:
             (dist,) = extra
@@ -384,7 +433,7 @@ def alinha_giro(max_tentativas=4, virar=True, #! virar=False?
 
         ang  = rodas.angle()
         dist = rodas.distance()
-        with mudar_velocidade(rodas, vel, vel_ang):
+        with mudar_velocidade(vel, vel_ang):
             rodas.turn(-ang)
             dar_re(dist)
             rodas.turn(ang)
@@ -406,7 +455,7 @@ def alinhar(max_tentativas=4, virar=True, #! virar=False?
         dist = rodas.distance()
         if alinhou: return extra
         else:
-            with mudar_velocidade(rodas, 80, 30):
+            with mudar_velocidade(80, 30):
                 rodas.turn(-ang)
                 dar_re(dist)
                 rodas.turn(ang)
@@ -428,7 +477,7 @@ def alinha_re(max_tentativas=3,
         dist = rodas.distance()
         if alinhou: return
         else:
-            with mudar_velocidade(rodas, 80, 30):
+            with mudar_velocidade(80, 30):
                 rodas.turn(-ang)
                 dar_re(dist)
                 rodas.turn(ang)
