@@ -657,11 +657,18 @@ def descobrir_cor_caçambas():
     virar_direita()
 
     achar_nao_verde_alinhado()
-    rodas.straight(DIST_VERDE_CAÇAMBA-45) #! tá muito longe!
+    rodas.straight(DIST_VERDE_CAÇAMBA-43) #! tá muito longe! era 45 testar 43
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
         dist = blt.ver_dist_caçamba()
+
+        if cores_caçambas[i].cor == Cor.enum.MARROM:
+            cores_caçambas[i] = Cor(cor=Cor.enum.AMARELO)
+        if cores_caçambas[i].cor == Cor.enum.NENHUMA:
+            if (dist < TAM_QUARTEIRAO):
+                cores_caçambas[i] = Cor(cor=Cor.enum.PRETO)
+
         LOG(f"descobrir_cor_caçamba: caçamba {cores_caçambas[i]} a {dist/10}cm")
 
         if i+1 < NUM_CAÇAMBAS:
