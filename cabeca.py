@@ -670,7 +670,8 @@ def descobrir_cor_caçambas():
         if cores_caçambas[i].cor == Cor.enum.MARROM:
             cores_caçambas[i] = Cor(cor=Cor.enum.AMARELO)
         if cores_caçambas[i].cor == Cor.enum.PRETO:
-            cores_caçambas[i] = Cor(cor=Cor.enum.VERDE)
+            if True: cores_caçambas[i] = Cor(cor=Cor.enum.AZUL)
+            else:    cores_caçambas[i] = Cor(cor=Cor.enum.VERDE)
         if cores_caçambas[i].cor == Cor.enum.NENHUMA:
             if (dist < TAM_QUARTEIRAO):
                 cores_caçambas[i] = Cor(cor=Cor.enum.PRETO)
