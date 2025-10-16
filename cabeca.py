@@ -148,9 +148,12 @@ def main():
         dar_re(DIST_VERDE_CAÇAMBA)
 
 def test():
+    global orientação_estimada, pos_estimada, cores_caçambas
     ... # testar coisas aqui sem mudar o resto do código
-    blt.SILENCIOSO = False#True
-
+    blt.SILENCIOSO = True
+    posicionamento_inicial()
+    alinhar_caçambas()
+    descobrir_cor_caçambas()
     blt.resetar_garra()
     blt.abaixar_garra()
     while True:
@@ -159,15 +162,14 @@ def test():
         print(ang)
     testes.imprimir_cor_cubo_para_sempre()
 
-    global orientacao_estimada, pos_estimada, cores_caçambas
     if False:
         cores_caçambas = [
             Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO
         ]
-    if False: orientacao_estimada = "N"
-    if False: orientacao_estimada = "S"
-    if False: orientacao_estimada = "L"
-    if False: orientacao_estimada = "O"
+    if False: orientação_estimada = "N"
+    if False: orientação_estimada = "S"
+    if False: orientação_estimada = "L"
+    if False: orientação_estimada = "O"
 
     main()
 
@@ -476,8 +478,8 @@ def acertar_orientação(ori):
         if idx_diff ==  0: dar_meia_volta()
         if idx_diff ==  1: virar_direita()
     else:
-        while orientacao_estimada != ori:
-            LOG(f"{orientacao_estimada=}, {ori=}")
+        while orientação_estimada != ori:
+            LOG(f"{orientação_estimada=}, {ori=}")
             virar_direita()
 
 def posicionamento_inicial():
@@ -586,6 +588,9 @@ def procura(pos_estimada, cores_caçambas):
     cel_incertas.sort(key=lambda x: (
         len(caminhos_incertas[x]) if caminhos_incertas[x] is not None else 9000
     ))
+
+    blt.resetar_garra()
+    blt.abaixar_garra()
     for cel_destino in cel_incertas:
         LOG("tentando de", cel_atual, "até :", cel_destino)
 
@@ -605,8 +610,6 @@ def procura(pos_estimada, cores_caçambas):
         acertar_orientação(ori_final)
 
         # vê se tem alguma coisa na frente
-        blt.resetar_garra()
-        blt.abaixar_garra()
         rodas.straight(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO, then=Stop.COAST)
         ang = blt.fechar_garra()
         if ang > 145:
@@ -657,7 +660,7 @@ def descobrir_cor_caçambas():
     virar_direita()
 
     achar_nao_verde_alinhado()
-    rodas.straight(DIST_VERDE_CAÇAMBA-43) #! tá muito longe! era 45 testar 43
+    rodas.straight(DIST_VERDE_CAÇAMBA-41) #! tá muito longe! era 45 testar 43
     virar_esquerda()
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
@@ -665,6 +668,8 @@ def descobrir_cor_caçambas():
 
         if cores_caçambas[i].cor == Cor.enum.MARROM:
             cores_caçambas[i] = Cor(cor=Cor.enum.AMARELO)
+        if cores_caçambas[i].cor == Cor.enum.PRETO:
+            cores_caçambas[i] = Cor(cor=Cor.enum.VERDE)
         if cores_caçambas[i].cor == Cor.enum.NENHUMA:
             if (dist < TAM_QUARTEIRAO):
                 cores_caçambas[i] = Cor(cor=Cor.enum.PRETO)
