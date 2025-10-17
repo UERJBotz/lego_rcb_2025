@@ -39,7 +39,7 @@ DIST_EIXO_SENSOR = 45
 DIST_EIXO_SENSOR_FRENTE = 110
 DIST_EIXO_SENSOR_TRAS = 110
 DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
-DIST_EXTRA_CUBO = 0 #TAM_CUBO//2
+DIST_VOLTAR_CUBO = (TAM_CUBO*3)//2
 
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
@@ -73,7 +73,7 @@ cores_caçambas = []
 def setup():
     global hub, rodas
     global sensor_cor_esq, sensor_cor_centro, sensor_cor_dir
-    global botao_calibrar, orientação_estimada
+    global orientação_estimada, pos_estimada, na_grade
     global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
 
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA,
@@ -95,7 +95,7 @@ def setup():
                          axle_track=145.5) #! recalibrar
     rodas.use_gyro(True)
 
-    botao_calibrar = Button.BLUETOOTH
+    na_grade = False
 
     rodas_conf_padrao = rodas.settings() #! CONSTANTIZAR
     vel_padrao     = rodas_conf_padrao[0]
@@ -133,20 +133,32 @@ def main():
         posicionamento_inicial()
         pos_estimada = (0,0)
 
-        achar_nao_verde_alinhado()
-        dar_re(TAM_BLOCO//2)
-        achar_nao_verde_alinhado()
-        rodas.straight(DIST_EIXO_SENSOR)
+        if False:
+            achar_nao_verde_alinhado()
+            dar_re(TAM_BLOCO//2)
+            achar_nao_verde_alinhado()
+            rodas.straight(DIST_EIXO_SENSOR)
 
-        cor, pos_estimada = procura(pos_estimada, cores_caçambas)
-        caminho_volta = achar_caminhos(pos_estimada, (0,0))
-        seguir_caminho(caminho_volta)
+            cor, pos_estimada = procura(pos_estimada, cores_caçambas)
+            caminho_volta = achar_caminhos(pos_estimada, (0,0))
+            seguir_caminho(caminho_volta)
+        else:
+            achar_nao_verde_alinhado()
+            rodas.straight(DIST_EIXO_SENSOR)
+            cor, pos_estimada = procura_inicial(pos_estimada, cores_caçambas)
+            posicionamento_inicial()
+
         colocar_cubo_na_caçamba(cor)
         dar_re(DIST_VERDE_CAÇAMBA)
 
 def test():
-    global orientação_estimada, pos_estimada, cores_caçambas
+    global orientação_estimada, pos_estimada, na_grade, cores_caçambas
+    blt.SILENCIOSO = True
     ... # testar coisas aqui sem mudar o resto do código
+
+    while True:
+        andar_dist_linha(TAM_BLOCO)
+        bipes.separador()
 
     while False:
         cor = (blt.ver_cor_caçamba())
@@ -185,15 +197,22 @@ def test():
         bipes.separador()
         curva_linha_direita()
 
-    if False:
+    if False: tira_obstaculo((0,2))
+    if False: tira_obstaculo((0,4))
+    if False: tira_obstaculo((1,5))
+    if False: tira_obstaculo((2,4))
+    if False: tira_obstaculo((3,3))
+    if False: tira_obstaculo((4,4))
+
+    if True:
         cores_caçambas = [
             Cor.enum.NENHUMA for _ in range(NUM_CAÇAMBAS)
         ]
-        if False: cores_caçambas[0] = Cor.enum.VERMELHO
-        if False: cores_caçambas[1] = Cor.enum.AMARELO
-        if False: cores_caçambas[2] = Cor.enum.AZUL
-        if False: cores_caçambas[3] = Cor.enum.VERDE
-        if False: cores_caçambas[4] = Cor.enum.PRETO
+        if True: cores_caçambas[0] = Cor.enum.VERMELHO
+        if True: cores_caçambas[1] = Cor.enum.AMARELO
+        if True: cores_caçambas[2] = Cor.enum.AZUL
+        if True: cores_caçambas[3] = Cor.enum.VERDE
+        if True: cores_caçambas[4] = Cor.enum.PRETO
 
     if False: orientação_estimada = "N"
     if False: orientação_estimada = "S"
@@ -201,6 +220,21 @@ def test():
     if False: orientação_estimada = "O"
 
     if False: main()
+
+    if True:
+        pos_estimada = (0,0)
+        orientação_estimada = "L"
+
+        achar_nao_verde_alinhado()
+        rodas.straight(DIST_EIXO_SENSOR)
+
+        cor, pos_estimada = procura_inicial(pos_estimada, cores_caçambas)
+        #na_grade = True
+        #cor, pos_estimada = procura(pos_estimada, cores_caçambas)
+        #caminho_volta = achar_caminhos(pos_estimada, (0,0))
+        #seguir_caminho(caminho_volta)
+        #colocar_cubo_na_caçamba(cor)
+        #dar_re(DIST_VERDE_CAÇAMBA)
 
     LOG("fim do teste")
 
@@ -363,16 +397,54 @@ def achar_nao_verde_alinhado():
     dar_re(TAM_FAIXA) #!//2?
     return alinhar()#alinha_giro() #
 
+def ate_cruzamento(dist, esq, centro, dir, preto):
+    LOG("ate_cruzamento", esq, dir)
+    return preto(esq) and preto(dir)
+
+def ate_dist_max(dist_max):
+    LOG("ate_dist_max", dist_max)
+    def func(dist, esq, centro, dir, preto):
+        LOG("ate_dist_max_inner", dist, dist_max)
+        return dist >= dist_max
+    return func
+
+def ate_dist_max_ou_cruzamento(dist_max):
+    LOG("ate_dist_max_ou_cruzamento", dist_max)
+    def func(dist, esq, centro, dir, preto):
+        LOG("ate_dist_max_inner", dist, dist_max, esq, centro, dir, preto)
+        return (
+            ate_cruzamento(dist, esq, centro, dir, preto) or
+            ate_dist_max(dist_max)(dist, esq, centro, dir, preto)
+        )
+    return func
+
+def dar_re_linha(dist, **kwargs):
+    LOG("dar re linha", dist)
+    seguir_linha_ate(ate_dist_max(dist), vel=-70, **kwargs) #! vel hardcoded
+
+def dar_re_achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
+    LOG("dar re achar cruzamento linha", dist_max)
+    seguir_linha_ate(ate_dist_max_ou_cruzamento(dist_max), vel=-70, **kwargs) #! vel hardcoded
+
+def andar_dist_linha(dist, **kwargs):
+    LOG("andar dist linha", dist)
+    seguir_linha_ate(ate_dist_max(dist), **kwargs)
+
+def achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
+    LOG("achar cruzamento linha", dist_max)
+    seguir_linha_ate(ate_dist_max_ou_cruzamento(dist_max), **kwargs)
+
+
 mul_direção_seguir_linha = 1
-def achar_cruzamento_linha(vel=None, kp=.50, _kd=0, _ki=0, dist_max=TAM_PISTA_TODA):
+def seguir_linha_ate(parada=ate_dist_max_ou_cruzamento(TAM_PISTA_TODA),
+                     *, vel=None, kp=.50, _kd=0, _ki=0):
     if vel is None: vel = 70
 
     if False: REFL_MIN, REFL_MAX = 13, 99
     else:     REFL_MIN, REFL_MAX = 22, 99
     REFL_IDEAL = (REFL_MAX + REFL_MIN)/2
 
-    def preto(val):
-        return val <= REFL_MIN + 5
+    def preto(val): return val <= REFL_MIN + 5
 
     rodas.reset()
     while True:
@@ -384,8 +456,7 @@ def achar_cruzamento_linha(vel=None, kp=.50, _kd=0, _ki=0, dist_max=TAM_PISTA_TO
         ang  = mul_direção_seguir_linha*(erro*kp)
         rodas.drive(vel, ang)
 
-        if rodas.distance() >= dist_max: break
-        if preto(esq) and preto(dir): break
+        if parada(rodas.distance(), esq, centro, dir, preto): break
 
     rodas.stop()
 
@@ -505,7 +576,7 @@ def alinha_re(max_tentativas=3,
     return extra
 
 def seguir_caminho(caminho): #! lidar com outras coisas
-    def interpretar_movimento(mov):
+    def interpretar_movimento_livre(mov):
         #! fazer run length encoding aqui
         if   mov == tipo_movimento.FRENTE:
             rodas.straight(TAM_BLOCO, then=Stop.COAST)
@@ -522,6 +593,27 @@ def seguir_caminho(caminho): #! lidar com outras coisas
             virar_esquerda()
         elif mov == tipo_movimento.DIREITA:
             virar_direita()
+
+    def interpretar_movimento_cidade(mov):
+        #! fazer run length encoding aqui
+        if   mov == tipo_movimento.FRENTE:
+            andar_dist_linha(dist_max=TAM_BLOCO)
+        elif mov == tipo_movimento.TRAS:
+            dar_meia_volta()
+            andar_dist_linha(dist_max=TAM_BLOCO)
+        elif mov == tipo_movimento.ESQUERDA_FRENTE:
+            curva_linha_esquerda()
+            andar_dist_linha(dist_max=TAM_BLOCO)
+        elif mov == tipo_movimento.DIREITA_FRENTE:
+            curva_linha_direita()
+            andar_dist_linha(dist_max=TAM_BLOCO)
+        elif mov == tipo_movimento.ESQUERDA:
+            curva_linha_esquerda()
+        elif mov == tipo_movimento.DIREITA:
+            curva_linha_direita()
+
+    if na_grade: interpretar_movimento = interpretar_movimento_cidade
+    else:        interpretar_movimento = interpretar_movimento_livre
 
     def interpretar_caminho(caminho): #! receber orientação?
         for mov in caminho: #! yield orientação nova?
@@ -624,26 +716,71 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS): #! suport
     raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
 
 #! considerar adversário
-def procura_inicial(xy, caçambas):
-    entra_primeira_rua()
+#! TAM_FAIXA aqui talvez devesse ser dist_eixo_sensor
+def procura_inicial(pos_estimada, caçambas):
+    blt.resetar_garra()
+    blt.abaixar_garra()
 
-    x, _ = xy #! para procura genérico, usar y também
-    i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
-    while i == 2:
-        x += 2 #! para procura genérico, considerar orientação
-        i, extra = andar_ate_idx(ver_cubo_perto, ver_nao_pista)
-    ASSERT(i == 1, "procura inicial: deveria ser impossível andar demais")
+    y, x = pos_estimada #! para procura genérico, usar y também
+    cor = None
 
-    cor = extra
-    if cor in caçambas:
-        pegar_cubo()
-        dar_re_até_verde(xy)
-        #! fazer_caminho_contrário() #! voltar_para_verde(xy)
-        return cor, xy
-    else:
-        fazer_caminho_contrário() #! voltar_para_verde(xy)
-        xy = andar_1_quarteirão_no_eixo_y(xy)
-        return procura_inicial(xy, caçambas)
+    achar_cruzamento_linha()
+    andar_dist_linha(TAM_FAIXA)
+    pos = y,x
+    while x < 9: #! constantizar (nesse caso, acho que usar as constantes)
+        DIST_VER_CUBO = DIST_CRUZAMENTO_CUBO + DIST_EIXO_SENSOR
+        andar_dist_linha(DIST_VER_CUBO)
+        x += 1 #! para procura genérico, considerar orientação
+
+        ang = blt.fechar_garra()
+        if ang > 145: #! constantizar
+            LOG("procura_inicial: cel livre fechou tudo")
+
+            tira_obstaculo((y,x))
+            blt.abrir_garra()
+        else:
+            cor = blt.ver_cor_cubo()
+            luzes.mostrar(cor.color) #! fzr printar em braco
+            if cor == Cor.enum.NENHUMA:
+                LOG("procura_inicial: cel livre viu NENHUM")
+
+                tira_obstaculo((y,x))
+                andar_dist_linha(TAM_FAIXA)
+            else:
+                break
+
+        achar_cruzamento_linha()
+        andar_dist_linha(TAM_FAIXA)
+        x += 1 #! para procura genérico, considerar orientação
+
+    deixar = False
+    if cor:
+        if cor == Cor.enum.BRANCO:
+            LOG(f"procura_inicial: cubo branco")
+            bipes.cabeca()
+            deixar = True
+        if ((cor not in cores_caçambas) or
+            (cubos_caçambas[cores_caçambas.index(cor)] >= NUM_CUBOS_PEGÁVEIS)):
+            LOG(f"procura_inicial: cubo desconhecido cor {cor}")
+            deixar = True
+
+    if deixar:
+        coloca_obstaculo((y,x))
+        dar_re_linha(DIST_VOLTAR_CUBO) #!
+        blt.abrir_garra()
+
+    dar_re_linha(DIST_CRUZAMENTO_CUBO)
+    dar_re_linha(TAM_FAIXA)
+
+    for _ in range(x):
+        dar_re_linha(TAM_BLOCO)
+        dar_re_linha(TAM_FAIXA)
+        x -= 1
+
+    return (y,x)
+
+    #xy = andar_1_quarteirão_no_eixo_y(xy)
+    #return procura_inicial(xy, caçambas)
 
 def partial(func, *args, **kwargs):
     return lambda *a, **kw: func(*args, *a, **kwargs, **kw)
@@ -681,12 +818,12 @@ def procura(pos_estimada, cores_caçambas):
         acertar_orientação(ori_final)
 
         # vê se tem alguma coisa na frente
-        rodas.straight(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO, then=Stop.COAST)
+        andar_dist_linha(dist_max=DIST_CRUZAMENTO_CUBO)
         ang = blt.fechar_garra()
-        if ang > 145:
+        if ang > 145: #! constantizar
             LOG("procura: cel livre fechou tudo")
             tira_obstaculo(cel_destino)
-            rodas.straight(TAM_BLOCO - DIST_CRUZAMENTO_CUBO - DIST_EXTRA_CUBO, then=Stop.COAST)
+            achar_cruzamento_linha(dist_max=TAM_QUARTEIRAO)
             cel_atual = cel_destino
             blt.abrir_garra()
             continue
@@ -698,23 +835,23 @@ def procura(pos_estimada, cores_caçambas):
         if cor == Cor.enum.NENHUMA:
             LOG("procura: cel livre viu NENHUM")
             tira_obstaculo(cel_destino)
-            rodas.straight(TAM_BLOCO - DIST_CRUZAMENTO_CUBO - DIST_EXTRA_CUBO, then=Stop.COAST)
+            achar_cruzamento_linha(dist_max=TAM_QUARTEIRAO)
             cel_atual = cel_destino
             continue
         if ((cor not in cores_caçambas) or
             (cubos_caçambas[cores_caçambas.index(cor)] >= NUM_CUBOS_PEGÁVEIS)):
             LOG(f"procura: cubo desconhecido cor {cor}")
             coloca_obstaculo(cel_destino)
-            dar_re(DIST_EXTRA_CUBO)
+            dar_re_linha(DIST_VOLTAR_CUBO) #!
             blt.abrir_garra()
-            dar_re(DIST_CRUZAMENTO_CUBO)
+            dar_re_achar_cruzamento_linha(DIST_CRUZAMENTO_CUBO)
             continue
 
         imprimir_mapa()
 
         LOG(f"procura: cubo cor {cor}")
         tira_obstaculo(cel_destino)
-        dar_re(DIST_CRUZAMENTO_CUBO + DIST_EXTRA_CUBO)
+        dar_re(DIST_CRUZAMENTO_CUBO)
         return cor, cel_atual
 
     imprimir_mapa()
