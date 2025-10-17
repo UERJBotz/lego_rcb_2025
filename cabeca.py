@@ -340,7 +340,7 @@ def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo()
     return cor != Cor.enum.NENHUMA
 
-def andar_ate_idx(*conds_parada: Callable, dist_max=TAM_PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
+def andar_até_idx(*conds_parada: Callable, dist_max=TAM_PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
     rodas.reset()
     rodas.straight(dist_max, wait=False)
     while not rodas.done():
@@ -355,21 +355,21 @@ def andar_ate_idx(*conds_parada: Callable, dist_max=TAM_PISTA_TODA) -> tuple[boo
 nunca_parar   = (lambda: (False, False))
 ou_manter_res = (lambda res, ext: (res, ext))
 
-def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
+def andar_até_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
                             ou=ou_manter_res, dist_max=TAM_PISTA_TODA):
     succ, neut, frac = 1, 2, 3
     while True:
-        res, extra = andar_ate_idx(sucesso, neutro, fracasso,
+        res, extra = andar_até_idx(sucesso, neutro, fracasso,
                                    dist_max=dist_max)
 
         if   res == succ: return True, extra
         elif res == frac: return False, extra
         elif res == neut: continue
         elif res == 0:
-            LOG("andar_ate_bool: andou demais")
+            LOG("andar_até_bool: andou demais")
             return False, (None,) #ou(res, extra)
         else: 
-            LOG(f"andar_ate_bool: {res}")
+            LOG(f"andar_até_bool: {res}")
             assert False
 
 def cor_final(retorno):
@@ -379,13 +379,13 @@ def cor_final(retorno):
     else:     return cores.todas(sensor_cor_esq, sensor_cor_dir)
 
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
-    return cor_final(andar_ate_idx(ver_nao_pista))
+    return cor_final(andar_até_idx(ver_nao_pista))
 
 def achar_nao_verde() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
-    return cor_final(andar_ate_idx(ver_nao_verde))
+    return cor_final(andar_até_idx(ver_nao_verde))
 
 def achar_azul() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
-    return cor_final(andar_ate_idx(verificar_cor(Cor.azul)))
+    return cor_final(andar_até_idx(verificar_cor(Cor.azul)))
 
 def achar_azul_alinhado():
     achar_azul()
@@ -397,46 +397,46 @@ def achar_nao_verde_alinhado():
     dar_re(TAM_FAIXA) #!//2?
     return alinhar()#alinha_giro() #
 
-def ate_cruzamento(dist, esq, centro, dir, preto):
-    LOG("ate_cruzamento", esq, dir)
+def até_cruzamento(dist, esq, centro, dir, preto):
+    LOG("até_cruzamento", esq, dir)
     return preto(esq) and preto(dir)
 
-def ate_dist_max(dist_max):
-    LOG("ate_dist_max", dist_max)
+def até_dist_max(dist_max):
+    LOG("até_dist_max", dist_max)
     def func(dist, esq, centro, dir, preto):
-        LOG("ate_dist_max_inner", dist, dist_max)
+        LOG("até_dist_max_inner", dist, dist_max)
         return dist >= dist_max
     return func
 
-def ate_dist_max_ou_cruzamento(dist_max):
-    LOG("ate_dist_max_ou_cruzamento", dist_max)
+def até_dist_max_ou_cruzamento(dist_max):
+    LOG("até_dist_max_ou_cruzamento", dist_max)
     def func(dist, esq, centro, dir, preto):
-        LOG("ate_dist_max_inner", dist, dist_max, esq, centro, dir, preto)
+        LOG("até_dist_max_inner", dist, dist_max, esq, centro, dir, preto)
         return (
-            ate_cruzamento(dist, esq, centro, dir, preto) or
-            ate_dist_max(dist_max)(dist, esq, centro, dir, preto)
+            até_cruzamento(dist, esq, centro, dir, preto) or
+            até_dist_max(dist_max)(dist, esq, centro, dir, preto)
         )
     return func
 
 def dar_re_linha(dist, **kwargs):
     LOG("dar re linha", dist)
-    seguir_linha_ate(ate_dist_max(dist), vel=-70, **kwargs) #! vel hardcoded
+    seguir_linha_ate(até_dist_max(dist), vel=-70, **kwargs) #! vel hardcoded
 
 def dar_re_achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
     LOG("dar re achar cruzamento linha", dist_max)
-    seguir_linha_ate(ate_dist_max_ou_cruzamento(dist_max), vel=-70, **kwargs) #! vel hardcoded
+    seguir_linha_ate(até_dist_max_ou_cruzamento(dist_max), vel=-70, **kwargs) #! vel hardcoded
 
 def andar_dist_linha(dist, **kwargs):
     LOG("andar dist linha", dist)
-    seguir_linha_ate(ate_dist_max(dist), **kwargs)
+    seguir_linha_ate(até_dist_max(dist), **kwargs)
 
 def achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
     LOG("achar cruzamento linha", dist_max)
-    seguir_linha_ate(ate_dist_max_ou_cruzamento(dist_max), **kwargs)
+    seguir_linha_ate(até_dist_max_ou_cruzamento(dist_max), **kwargs)
 
 
 mul_direção_seguir_linha = 1
-def seguir_linha_ate(parada=ate_dist_max_ou_cruzamento(TAM_PISTA_TODA),
+def seguir_linha_ate(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
                      *, vel=None, kp=.50, _kd=0, _ki=0):
     if vel is None: vel = 70
 
@@ -483,7 +483,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
     alinhado_parede = lambda esq, dir: alinhado_nao_pista(esq, dir) and not desalinhado_branco(esq, dir)
 
     with mudar_velocidade(vel, vel_ang):
-        parou, extra = andar_ate_idx(func_parar_andar, dist_max=TAM_BLOCO)
+        parou, extra = andar_até_idx(func_parar_andar, dist_max=TAM_BLOCO)
         if not parou:
             (dist,) = extra
             LOG(f"alinha_parede: reto pista {dist}")
