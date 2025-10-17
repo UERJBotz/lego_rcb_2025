@@ -45,7 +45,7 @@ DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
 DIST_VERDE_CAÇAMBA = 80
 
-PISTA_TODA = TAM_QUARTEIRAO*6
+TAM_PISTA_TODA = TAM_QUARTEIRAO*6
 BLOCO_MEIO = 4
 
 DISTS_CAÇAMBAS = [ DIST_BORDA_CAÇAMBA +
@@ -149,52 +149,60 @@ def test():
     ... # testar coisas aqui sem mudar o resto do código
 
     while False:
+        cor = (blt.ver_cor_caçamba())
+        print(cor, cor.cor, cor.color)
+        achar_cruzamento_linha(dist_max=TAM_CAÇAMBA+DIST_CAÇAMBA)
+        bipes.separador()
+
+    while False:
         esq    = sensor_cor_esq.reflection()
         centro = sensor_cor_centro.reflection()
         dir    = sensor_cor_dir.reflection()
         print(esq, centro, dir)
 
-    global mul_direção_seguir_linha
-    while True:
-        if False: vel = 70
-        else:     vel, *_ = rodas.settings()
+    while False:
+        blt.abrir_garra()
+        ang = blt.fechar_garra()
+        print(ang)
+
+    if False: testes.imprimir_cor_cubo_para_sempre()
+    if False: testes.imprimir_cor_caçamba_para_sempre()
+
+    while False:
+        if True: vel = None
+        else:    vel, *_ = rodas.settings()
 
         for _ in range(5):
-            #curva_linha_esquerda() #!??? tá trocado e acho que funcionou
-            achar_cruzamento(vel)
+            achar_cruzamento_linha(vel)
             bipes.separador()
-            mul_direção_seguir_linha = -1
-            rodas.curve(DIST_EIXO_SENSOR, -90)
+            curva_linha_esquerda()
 
-        #curva_linha_esquerda()
-        achar_cruzamento(vel)
+        achar_cruzamento_linha(vel)
         bipes.separador()
-        mul_direção_seguir_linha = +1
-        rodas.curve(DIST_EIXO_SENSOR, -90)
+        curva_linha_esquerda()
 
-        #curva_linha_direita()
-        achar_cruzamento(vel)
+        achar_cruzamento_linha(vel)
         bipes.separador()
-        mul_direção_seguir_linha = -1
-        rodas.curve(DIST_EIXO_SENSOR, 90)
-
-
-    while True:
-        blt.abrir_garra()
-        ang = blt.fechar_garra() #...
-        print(ang)
-    testes.imprimir_cor_cubo_para_sempre()
+        curva_linha_direita()
 
     if False:
         cores_caçambas = [
-            Cor.enum.VERMELHO, Cor.enum.AMARELO, Cor.enum.AZUL, Cor.enum.VERDE, Cor.enum.PRETO
+            Cor.enum.NENHUMA for _ in range(NUM_CAÇAMBAS)
         ]
+        if False: cores_caçambas[0] = Cor.enum.VERMELHO
+        if False: cores_caçambas[1] = Cor.enum.AMARELO
+        if False: cores_caçambas[2] = Cor.enum.AZUL
+        if False: cores_caçambas[3] = Cor.enum.VERDE
+        if False: cores_caçambas[4] = Cor.enum.PRETO
+
     if False: orientação_estimada = "N"
     if False: orientação_estimada = "S"
     if False: orientação_estimada = "L"
     if False: orientação_estimada = "O"
 
-    main()
+    if False: main()
+
+    LOG("fim do teste")
 
 
 class mudar_velocidade():
@@ -298,7 +306,7 @@ def ver_cubo_perto() -> bool:
     cor = blt.ver_cor_cubo()
     return cor != Cor.enum.NENHUMA
 
-def andar_ate_idx(*conds_parada: Callable, dist_max=PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
+def andar_ate_idx(*conds_parada: Callable, dist_max=TAM_PISTA_TODA) -> tuple[bool, tuple[Any]]: # type: ignore
     rodas.reset()
     rodas.straight(dist_max, wait=False)
     while not rodas.done():
@@ -314,7 +322,7 @@ nunca_parar   = (lambda: (False, False))
 ou_manter_res = (lambda res, ext: (res, ext))
 
 def andar_ate_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
-                            ou=ou_manter_res, dist_max=PISTA_TODA):
+                            ou=ou_manter_res, dist_max=TAM_PISTA_TODA):
     succ, neut, frac = 1, 2, 3
     while True:
         res, extra = andar_ate_idx(sucesso, neutro, fracasso,
@@ -356,15 +364,17 @@ def achar_nao_verde_alinhado():
     return alinhar()#alinha_giro() #
 
 mul_direção_seguir_linha = 1
-def achar_cruzamento(vel):
-    REFL_MAX = 99
-    REFL_MIN = 13
+def achar_cruzamento_linha(vel=None, kp=.50, _kd=0, _ki=0, dist_max=TAM_PISTA_TODA):
+    if vel is None: vel = 70
+
+    if False: REFL_MIN, REFL_MAX = 13, 99
+    else:     REFL_MIN, REFL_MAX = 22, 99
     REFL_IDEAL = (REFL_MAX + REFL_MIN)/2
 
     def preto(val):
         return val <= REFL_MIN + 5
 
-    kp = .50
+    rodas.reset()
     while True:
         esq    = sensor_cor_esq.reflection()
         centro = sensor_cor_centro.reflection()
@@ -374,9 +384,20 @@ def achar_cruzamento(vel):
         ang  = mul_direção_seguir_linha*(erro*kp)
         rodas.drive(vel, ang)
 
+        if rodas.distance() >= dist_max: break
         if preto(esq) and preto(dir): break
 
     rodas.stop()
+
+def curva_linha_esquerda():
+    global mul_direção_seguir_linha
+    mul_direção_seguir_linha = +1
+    rodas.curve(DIST_EIXO_SENSOR, -90)
+
+def curva_linha_direita():
+    global mul_direção_seguir_linha
+    mul_direção_seguir_linha = -1
+    rodas.curve(DIST_EIXO_SENSOR, +90)
 
 
 def alinha_parede(vel, vel_ang, giro_max=45,
@@ -716,6 +737,7 @@ def descobrir_cor_caçambas():
         cores_caçambas[i] = blt.ver_cor_caçamba()
         dist = blt.ver_dist_caçamba()
 
+        #! rataria
         if cores_caçambas[i].cor == Cor.enum.MARROM:
             cores_caçambas[i] = Cor(cor=Cor.enum.AMARELO)
         if cores_caçambas[i].cor == Cor.enum.PRETO:
