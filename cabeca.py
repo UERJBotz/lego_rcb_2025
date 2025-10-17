@@ -107,7 +107,8 @@ def setup():
 def main():
     global orientação_estimada, pos_estimada, cores_caçambas
     blt.SILENCIOSO = True
-
+    
+    luzes.inicial()
     while True:
         blt.resetar_garra()
         blt.abaixar_garra()
@@ -723,7 +724,8 @@ if __name__ == "__main__":
         except SystemExit:
             hub.system.set_stop_button(None)
             LOG("pedindo parada")
-            rodas.straight(0)
+            rodas.reset()
+            luzes.reset()
             bipes.cabeca()
             bipes.inicio()
             bipes.cabeca()
