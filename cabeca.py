@@ -107,31 +107,28 @@ def setup():
 def main():
     global orientação_estimada, pos_estimada, cores_caçambas
     blt.SILENCIOSO = True
-
-    blt.resetar_garra()
-    blt.abaixar_garra()
-    posicionamento_inicial()
-    pos_estimada = (0,0)
-    if not cores_caçambas:
-        descobrir_cor_caçambas()
-        acertar_orientação("L")
-        achar_azul_alinhado()
-        dar_re_alinhar_primeiro_bloco()
-
-        if choice((True, False)):
-            acertar_orientação("S")
-            achar_nao_verde_alinhado()
-            dar_re_alinhar_primeiro_bloco()
-            acertar_orientação("L")
-            pos_estimada = (8,0)
-        else:
-            posicionamento_inicial()
-
+    
+    luzes.inicial()
     while True:
         blt.resetar_garra()
         blt.abaixar_garra()
         posicionamento_inicial()
         pos_estimada = (0,0)
+
+        if not cores_caçambas:
+            descobrir_cor_caçambas()
+            acertar_orientação("L")
+            achar_azul_alinhado()
+            dar_re_alinhar_primeiro_bloco()
+
+            if choice((True, False)):
+                acertar_orientação("S")
+                achar_nao_verde_alinhado()
+                dar_re_alinhar_primeiro_bloco()
+                acertar_orientação("L")
+                pos_estimada = (8,0)
+            else:
+                posicionamento_inicial()
 
         achar_nao_verde_alinhado()
         dar_re(TAM_BLOCO//2)
@@ -790,11 +787,31 @@ if __name__ == "__main__":
     except: DEBUG = False
 
     hub = setup()
-    try:
-        bipes.inicio()
-        if TESTE: test()
-        else:     main()
-        bipes.final()
-    except Exception as e:
-        bipes.falha()
-        raise e
+    while True:
+        try:
+            bipes.inicio()
+            if TESTE: test()
+            else:     main()
+            bipes.final()
+        except SystemExit:
+            hub.system.set_stop_button(None)
+            LOG("pedindo parada")
+            rodas.reset()
+            luzes.reset()
+            bipes.cabeca()
+            bipes.inicio()
+            bipes.cabeca()
+
+            wait(300)
+            bots = set()
+            while Button.CENTER not in bots:
+                bots = hub.buttons.pressed()
+                if Button.LEFT  in bots: pass
+                if Button.RIGHT in bots: pass
+
+            LOG("reiniciando")
+            hub.system.set_stop_button(Button.CENTER)
+            continue
+        except Exception as e:
+            bipes.falha()
+            raise e
