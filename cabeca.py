@@ -228,13 +228,15 @@ def test():
         achar_nao_verde_alinhado()
         rodas.straight(DIST_EIXO_SENSOR)
 
-        cor, pos_estimada = procura_inicial(pos_estimada, cores_caçambas)
-        #na_grade = True
-        #cor, pos_estimada = procura(pos_estimada, cores_caçambas)
-        #caminho_volta = achar_caminhos(pos_estimada, (0,0))
-        #seguir_caminho(caminho_volta)
-        #colocar_cubo_na_caçamba(cor)
-        #dar_re(DIST_VERDE_CAÇAMBA)
+        if False:
+            cor, pos_estimada = procura_inicial(pos_estimada, cores_caçambas)
+        else:
+            na_grade = True
+            cor, pos_estimada = procura(pos_estimada, cores_caçambas)
+            caminho_volta = achar_caminhos(pos_estimada, (0,0))
+            seguir_caminho(caminho_volta)
+            colocar_cubo_na_caçamba(cor)
+            dar_re(DIST_VERDE_CAÇAMBA)
 
     LOG("fim do teste")
 
