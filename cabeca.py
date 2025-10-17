@@ -40,7 +40,7 @@ DIST_EIXO_SENSOR_FRENTE = 110
 DIST_EIXO_SENSOR_TRAS = 110
 DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
 DIST_EXTRA_CUBO = 0 #TAM_CUBO//2
-DIST_SENSORES_CENTRO = 16
+DIST_SENSORES_CENTRO = 20
 
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
@@ -118,18 +118,15 @@ def main():
 
         if not cores_caçambas:
             descobrir_cor_caçambas()
-
-            #! era acertar_orientação("L"), testar assim
-            virar_esquerda()
-            orientação_estimada = "L"
+            acertar_orientação("L")
 
             achar_azul_alinhado()
             dar_ré_alinhar_primeiro_bloco()
             posicionamento_inicial()
 
-        achar_nao_verde_alinhado()
+        achar_não_verde_alinhado()
         dar_ré(TAM_BLOCO//2)
-        achar_nao_verde_alinhado()
+        achar_não_verde_alinhado()
         rodas.straight(DIST_EIXO_SENSOR)
 
         cor, pos_estimada = procura(pos_estimada, cores_caçambas)
@@ -342,7 +339,7 @@ def cor_final(retorno):
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     return cor_final(andar_ate_idx(ver_nao_pista))
 
-def achar_nao_verde() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
+def achar_não_verde() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
     return cor_final(andar_ate_idx(ver_nao_verde))
 
 def achar_azul() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
@@ -353,8 +350,8 @@ def achar_azul_alinhado():
     dar_ré(TAM_FAIXA) #!//2?
     return alinhar()#alinha_giro() #
 
-def achar_nao_verde_alinhado():
-    achar_nao_verde()
+def achar_não_verde_alinhado():
+    achar_não_verde()
     dar_ré(TAM_FAIXA) #!//2?
     return alinhar()#alinha_giro() #
 
@@ -478,7 +475,7 @@ def alinhar(max_tentativas=4, virar=True, #! virar=False?
     #! às vezes ele retorna como verde verde, tentei fazer isso pra resolver
     #if extra == (Cor.enum.VERDE, Cor.enum.VERDE):
     #    LOG("alinhar: vou na fé")
-    #    return achar_nao_verde()
+    #    return achar_não_verde()
     return extra
 
 def alinha_re(max_tentativas=3,
@@ -553,7 +550,7 @@ def posicionamento_inicial():
 
     viu_vermelho = False
     while not (viu_vermelho and orientação_estimada == "L"):
-        esq, dir = achar_nao_verde_alinhado()
+        esq, dir = achar_não_verde_alinhado()
 
         bipes.separador()
         dar_ré_meio_quarteirao()
@@ -585,12 +582,12 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS): #! suport
     acertar_orientação("O")
     ASSERT(orientação_estimada == "O", "alinhar_caçambas: é pra ser oeste!")
 
-    achar_nao_verde_alinhado()
+    achar_não_verde_alinhado()
     LOG("alinhar_caçambas: viu não verde (espera amarelo)")
     dar_ré_meio_quarteirao()
 
     virar_direita()
-    achar_nao_verde_alinhado()
+    achar_não_verde_alinhado()
     LOG("alinhar_caçambas: viu não verde (espera vermelho)")
 
     dar_ré(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR)
@@ -606,7 +603,7 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS): #! suport
             blt.levantar_garra()
             virar_direita()
 
-            achar_nao_verde_alinhado()
+            achar_não_verde_alinhado()
             rodas.straight(DIST_VERDE_CAÇAMBA-20)
             blt.abrir_garra()
 
@@ -717,17 +714,15 @@ def descobrir_cor_caçambas():
     global cores_caçambas
     if not cores_caçambas:
         cores_caçambas = [Cor(cor=Cor.enum.NENHUMA) for i in range(NUM_CAÇAMBAS)]
-
+    
     acertar_orientação("O")
-    achar_nao_verde_alinhado()
-    rodas.curve(DIST_SENSORES_CENTRO, -90)
-
+    achar_não_verde_alinhado()
+    rodas.straight(DIST_SENSORES_CENTRO)
+    acertar_orientação("S")
     #gambiarra ver o 1 com cor incerta
-    achar_cruzamento_linha(vel = 10, dist_max=(TAM_BLOCO//3))
-    dar_ré(TAM_BLOCO//5)
-    achar_cruzamento_linha(vel = 10, dist_max=(TAM_BLOCO//4))
-    achar_cruzamento_linha(vel = 30, dist_max=(DIST_BORDA_CAÇAMBA))
-
+    achar_cruzamento_linha(vel = 20, dist_max=(TAM_BLOCO//2))
+    achar_cruzamento_linha(vel = 50, dist_max=(DIST_BORDA_CAÇAMBA))
+    
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
         bipes.cabeca()
@@ -746,10 +741,12 @@ def descobrir_cor_caçambas():
         LOG(f"descobrir_cor_caçamba: caçamba {cores_caçambas[i]} a {dist/10}cm")
 
         if i+1 < NUM_CAÇAMBAS:
-            achar_cruzamento_linha(dist_max = TAM_CAÇAMBA+DIST_CAÇAMBA)
+            achar_cruzamento_linha(vel = 80, dist_max = TAM_CAÇAMBA+DIST_CAÇAMBA)
     LOG(f"descobrir_cor_caçamba: cores_caçambas = {cores_caçambas}")
-    
-
+    rodas.turn(10)
+    dar_ré(TAM_BLOCO//4)
+    rodas.turn(-20)
+   
 class testes:
     @staticmethod
     def imprimir_cor_caçamba_para_sempre():
