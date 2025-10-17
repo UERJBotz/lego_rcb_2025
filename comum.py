@@ -78,6 +78,14 @@ class luzes:
         else:
             globais.hub.light.on(color)
 
+    @staticmethod
+    def inicial():
+        globais.hub.light.blink(Color.GREEN, [100, 100])
+
+    @staticmethod
+    def reset():
+        globais.hub.light.blink(Color.MAGENTA, [100, 100])
+
 class coringa:
     def __init__(self, *args, **kwargs): pass
     def __call__(*args, **kwargs): pass
