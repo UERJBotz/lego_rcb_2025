@@ -48,7 +48,7 @@ DIST_SENSORES_CENTRO = 20
 DIST_BORDA_CAÇAMBA = 130
 DIST_CAÇAMBA = 100
 DIST_VERDE_CAÇAMBA = 80
-
+VEL_SEGUIR_LINHA = 100 #mm/s
 TAM_PISTA_TODA = TAM_QUARTEIRÃO*6
 BLOCO_MEIO = 4
 
@@ -68,6 +68,11 @@ cores_caçambas = []
 
 #! na varredura, quando vê azul, parar de ir e reclamar do inimigo
 
+class dir_linha:
+    ESQ = -1
+    DIR = +1
+
+    mul = DIR
 
 def setup():
     global hub, rodas
@@ -134,7 +139,7 @@ def main():
             cor, pos_estimada = varredura(pos_estimada, cores_caçambas)
 
             quarteirão_atual += 1
-            quarteirão_atual %= MAPA_Y_MAX//2
+            quarteirão_atual %= (MAPA_Y_MAX//2 + 1) #! nunca vai sair do loop
             if not cor: pass #!
             else:
                 colocar_cubo_na_caçamba(cor)
@@ -296,12 +301,10 @@ def dar_meia_volta():
     LOG(f"dar_meia_volta: {orientação_estimada=}")
 
 def dar_meia_volta_linha():
-    global orientação_estimada, mul_direção_seguir_linha
+    global orientação_estimada
 
-    if mul_direção_seguir_linha < 0:
-        rodas.curve(TAM_FAIXA//2, +180)
-    else:
-        rodas.curve(TAM_FAIXA//2, -180)
+    if   dir_linha.mul == dir_linha.ESQ: rodas.curve(TAM_FAIXA//2, +180)
+    elif dir_linha.mul == dir_linha.DIR: rodas.curve(TAM_FAIXA//2, -180)
 
     orientação_estimada = inverte_orientação()
     LOG(f"dar_meia_volta_linha: {orientação_estimada=}")
@@ -471,11 +474,11 @@ def pid(kp, kd=0, ki=0):
         return ativ
     return f
 
-pid_linha = pid(kp=.50) #! kd=1, ki=0.001
-mul_direção_seguir_linha = 1
+pid_linha = pid(kp=0.50)
 def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
-                     *, vel=None, parar_no_verde=True):
-    if vel is None: vel = 70
+                     *, vel=None, pid=None, parar_no_verde=True):
+    if vel is None: vel = VEL_SEGUIR_LINHA
+    if pid is None: pid = pid_linha
 
     if False: REFL_MIN, REFL_MAX = 13, 99
     else:     REFL_MIN, REFL_MAX = 22, 99
@@ -489,8 +492,8 @@ def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
         centro = sensor_cor_centro.reflection()
         dir    = sensor_cor_dir.reflection()
 
-        erro = mul_direção_seguir_linha*(REFL_IDEAL - centro)
-        rodas.drive(vel, pid_linha(erro))
+        erro = dir_linha.mul * (REFL_IDEAL - centro)
+        rodas.drive(vel, pid(erro))
 
         if parada(rodas.distance(), esq, centro, dir, preto): break
         if parar_no_verde:
@@ -501,13 +504,11 @@ def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
     rodas.stop()
 
 def curva_linha_esquerda():
-    global mul_direção_seguir_linha
-    mul_direção_seguir_linha = +1
+    dir_linha.mul = dir_linha.DIR
     rodas.curve(DIST_EIXO_SENSOR, -90)
 
 def curva_linha_direita():
-    global mul_direção_seguir_linha
-    mul_direção_seguir_linha = -1
+    dir_linha.mul = dir_linha.ESQ
     rodas.curve(DIST_EIXO_SENSOR, +90)
 
 
@@ -939,8 +940,9 @@ def descobrir_cor_caçambas():
     acertar_orientação("S")
 
     #gambiarra ver o 1 com cor incerta
-    andar_dist_linha(DIST_ALINHO, vel = 20)
-    andar_dist_linha(DIST_BORDA_CAÇAMBA - DIST_ALINHO, vel = 50)
+    pid_caçamba = pid(kp=0.5)
+    andar_dist_linha(DIST_ALINHO, vel=20, pid=pid_caçamba)
+    andar_dist_linha(DIST_BORDA_CAÇAMBA - DIST_ALINHO, pid=pid_caçamba)
 
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
