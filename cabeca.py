@@ -123,18 +123,18 @@ def main():
             descobrir_cor_caçambas()
             acertar_orientação("L")
             achar_azul_alinhado()
-            dar_re_alinhar_primeiro_bloco()
+            dar_ré_alinhar_primeiro_bloco()
             posicionamento_inicial()
 
-        while rua_atual <= MAPA_Y_MAX//2:
-            achar_nao_verde_alinhado()
+        while False: #rua_atual <= MAPA_Y_MAX//2:
+            achar_não_verde_alinhado()
             rodas.straight(DIST_EIXO_SENSOR)
             cor, pos_estimada = varredura(pos_estimada, cores_caçambas)
             if (not cor) or (cor == Cor.enum.BRANCO):
                 rua_atual += 1
             else:
                 colocar_cubo_na_caçamba(cor)
-                dar_re(DIST_VERDE_CAÇAMBA)
+                dar_ré(DIST_VERDE_CAÇAMBA)
 
             posicionamento_inicial()
             acertar_orientação("S")
@@ -142,13 +142,13 @@ def main():
             pos_estimada = (rua_atual*2, 0)
             acertar_orientação("L")
         else:
-            achar_nao_verde_alinhado()
+            achar_não_verde_alinhado()
             rodas.straight(DIST_EIXO_SENSOR)
             cor, pos_estimada = procura(pos_estimada, cores_caçambas)
             caminho_volta = achar_caminhos(pos_estimada, (0,0))
             seguir_caminho(caminho_volta)
             colocar_cubo_na_caçamba(cor)
-            dar_re(DIST_VERDE_CAÇAMBA)
+            dar_ré(DIST_VERDE_CAÇAMBA)
 
 def test():
     global orientação_estimada, pos_estimada, na_grade, cores_caçambas
@@ -224,7 +224,7 @@ def test():
         pos_estimada = (0,0)
         orientação_estimada = "L"
 
-        achar_nao_verde_alinhado()
+        achar_não_verde_alinhado()
         rodas.straight(DIST_EIXO_SENSOR)
 
         if True:
@@ -235,7 +235,7 @@ def test():
             caminho_volta = achar_caminhos(pos_estimada, (0,0))
             seguir_caminho(caminho_volta)
             colocar_cubo_na_caçamba(cor)
-            dar_re(DIST_VERDE_CAÇAMBA)
+            dar_ré(DIST_VERDE_CAÇAMBA)
 
     LOG("fim do teste")
 
@@ -321,11 +321,11 @@ def dar_ré_meio_quarteirao():
 
 #! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
 
-def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
+def ver_não_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
     return ((not esq.pista() or not dir.pista()), esq, dir)
 
-def ver_nao_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
+def ver_não_verde() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
     if not esq.verde() or not dir.verde(): LOG(f"ver_não_verde: {esq}, {dir}")
     return ((not esq.area_livre() or not dir.area_livre()), esq, dir)
@@ -356,7 +356,7 @@ def andar_até_idx(*conds_parada: Callable, dist_max=TAM_PISTA_TODA) -> tuple[bo
 nunca_parar   = (lambda: (False, False))
 ou_manter_res = (lambda res, ext: (res, ext))
 
-def andar_até_bool(sucesso, neutro=nunca_parar, fracasso=ver_nao_pista,
+def andar_até_bool(sucesso, neutro=nunca_parar, fracasso=ver_não_pista,
                             ou=ou_manter_res, dist_max=TAM_PISTA_TODA):
     succ, neut, frac = 1, 2, 3
     while True:
@@ -380,10 +380,10 @@ def cor_final(retorno):
     else:     return cores.todas(sensor_cor_esq, sensor_cor_dir)
 
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
-    return cor_final(andar_até_idx(ver_nao_pista))
+    return cor_final(andar_até_idx(ver_não_pista))
 
 def achar_não_verde() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
-    return cor_final(andar_até_idx(ver_nao_verde))
+    return cor_final(andar_até_idx(ver_não_verde))
 
 def achar_azul() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]:
     return cor_final(andar_até_idx(verificar_cor(Cor.azul)))
@@ -405,25 +405,23 @@ def até_cruzamento(dist, esq, centro, dir, preto):
 def até_dist_max(dist_max):
     LOG("até_dist_max", dist_max)
     def func(dist, esq, centro, dir, preto):
-        LOG("até_dist_max_inner", dist, dist_max)
         return dist >= dist_max
     return func
 
 def até_dist_max_ou_cruzamento(dist_max):
     LOG("até_dist_max_ou_cruzamento", dist_max)
     def func(dist, esq, centro, dir, preto):
-        LOG("até_dist_max_inner", dist, dist_max, esq, centro, dir)
         return (
             até_cruzamento(dist, esq, centro, dir, preto) or
             até_dist_max(dist_max)(dist, esq, centro, dir, preto)
         )
     return func
 
-def dar_re_linha(dist, **kwargs):
+def dar_ré_linha(dist, **kwargs):
     LOG("dar re linha", dist)
     seguir_linha_ate(até_dist_max(dist), vel=-70, **kwargs) #! vel hardcoded
 
-def dar_re_achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
+def dar_ré_achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
     LOG("dar re achar cruzamento linha", dist_max)
     seguir_linha_ate(até_dist_max_ou_cruzamento(dist_max), vel=-70, **kwargs) #! vel hardcoded
 
@@ -478,14 +476,14 @@ def curva_linha_direita():
 
 def alinha_parede(vel, vel_ang, giro_max=45,
                   func_cor_pista=Cor.area_livre,
-                  func_parar_andar=ver_nao_verde
+                  func_parar_andar=ver_não_verde
                   ) -> bool:
     desalinhado_branco = lambda esq, dir: Cor.branco(esq) ^ Cor.branco(dir)
-    alinhado_nao_pista = lambda esq, dir: ((not func_cor_pista(esq)) and
+    alinhado_não_pista = lambda esq, dir: ((not func_cor_pista(esq)) and
                                            (not func_cor_pista(dir)))
     
     alinhado_pista  = lambda esq, dir: func_cor_pista(esq) and func_cor_pista(dir)
-    alinhado_parede = lambda esq, dir: alinhado_nao_pista(esq, dir) and not desalinhado_branco(esq, dir)
+    alinhado_parede = lambda esq, dir: alinhado_não_pista(esq, dir) and not desalinhado_branco(esq, dir)
 
     with mudar_velocidade(vel, vel_ang):
         parou, extra = andar_até_idx(func_parar_andar, dist_max=TAM_BLOCO)
@@ -769,9 +767,9 @@ def varredura(pos_estimada, caçambas):
 
     if deixar:
         coloca_obstaculo((y,x))
-        dar_re(DIST_VOLTAR_CUBO) #!
+        dar_ré(DIST_VOLTAR_CUBO) #!
         blt.abrir_garra()
-        dar_re(DIST_CRUZAMENTO_CUBO) #!
+        dar_ré(DIST_CRUZAMENTO_CUBO) #!
 
     acertar_orientação("O")
 
