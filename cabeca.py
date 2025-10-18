@@ -68,6 +68,8 @@ cores_caçambas = []
 
 #! na varredura, quando vê azul, parar de ir e reclamar do inimigo
 
+class CuboInesperado(Exception): pass
+
 
 def setup():
     global hub, rodas
@@ -196,15 +198,15 @@ def test():
         else:    vel, *_ = rodas.settings()
 
         for _ in range(5):
-            achar_cruzamento_linha(vel)
+            achar_cruzamento_linha(vel=vel)
             bipes.separador()
             curva_linha_esquerda()
 
-        achar_cruzamento_linha(vel)
+        achar_cruzamento_linha(vel=vel)
         bipes.separador()
         curva_linha_esquerda()
 
-        achar_cruzamento_linha(vel)
+        achar_cruzamento_linha(vel=vel)
         bipes.separador()
         curva_linha_direita()
 
@@ -227,10 +229,10 @@ def test():
 
     if False: orientação_estimada = "N"
     if False: orientação_estimada = "S"
-    if True: orientação_estimada = "L"
+    if False: orientação_estimada = "L"
     if False: orientação_estimada = "O"
 
-    if True:
+    if False:
         pos_estimada = (0,0)
         orientação_estimada = "L"
 
@@ -278,6 +280,26 @@ class mudar_velocidade():
 def SucessoOuCatástrofe(*args):
     ERRO("SUCESSO OU CATÁSTROFE", *args) #! if DEBUG: raise ...
 
+def sentido_horário(ori=None):
+    if ori == None: ori = orientação_estimada
+
+    if ori == "N": return "O"
+    if ori == "S": return "L"
+    if ori == "L": return "N"
+    if ori == "O": return "S"
+
+    return ori #!< não é pra chegar aqui
+
+def sentido_antihorário(ori=None):
+    if ori == None: ori = orientação_estimada
+
+    if ori == "N": return "L"
+    if ori == "S": return "O"
+    if ori == "L": return "S"
+    if ori == "O": return "N"
+
+    return ori #!< não é pra chegar aqui
+
 def inverte_orientação(ori=None):
     if ori == None: ori = orientação_estimada
 
@@ -296,43 +318,33 @@ def dar_meia_volta():
     LOG(f"dar_meia_volta: {orientação_estimada=}")
 
 def dar_meia_volta_linha():
-    global orientação_estimada, mul_direção_seguir_linha
+    global orientação_estimada
 
-    if mul_direção_seguir_linha < 0:
-        rodas.curve(TAM_FAIXA//2, +180)
-    else:
-        rodas.curve(TAM_FAIXA//2, -180)
+    if   mul_direção_seguir_linha == DIR_ESQ: rodas.curve((TAM_FAIXA*3)//2, +180)
+    elif mul_direção_seguir_linha == DIR_DIR: rodas.curve((TAM_FAIXA*3)//2, -180)
 
     orientação_estimada = inverte_orientação()
     LOG(f"dar_meia_volta_linha: {orientação_estimada=}")
-
-#! separar esses ifelses de orientação pra girar_orientação esq e dir que nem inverte_orientação
-##! aí fazer as funções de curva também chamarem essa nova também
 
 def virar_direita():
     global orientação_estimada
     rodas.turn(90)
 
-    if   orientação_estimada == "N": orientação_estimada = "L"
-    elif orientação_estimada == "S": orientação_estimada = "O"
-    elif orientação_estimada == "L": orientação_estimada = "S"
-    elif orientação_estimada == "O": orientação_estimada = "N"
+    orientação_estimada = sentido_horário()
     LOG(f"virar_direita: {orientação_estimada=}")
 
 def virar_esquerda():
     global orientação_estimada
     rodas.turn(-90)
 
-    if   orientação_estimada == "N": orientação_estimada = "O"
-    elif orientação_estimada == "S": orientação_estimada = "L"
-    elif orientação_estimada == "L": orientação_estimada = "N"
-    elif orientação_estimada == "O": orientação_estimada = "S"
+    orientação_estimada = sentido_antihorário()
     LOG(f"virar_esquerda: {orientação_estimada=}")
 
 DIST_PARAR=0.4 #! checar valor
 def parar():
     rodas.straight(-DIST_PARAR)
     rodas.stop()
+
 ANG_PARAR=0.0
 def parar_girar():
     rodas.turn(-ANG_PARAR)
@@ -429,11 +441,18 @@ def achar_não_verde_alinhado(*args, **kwargs):
     return alinhar(*args, **kwargs)
 
 def até_cruzamento(dist, esq, centro, dir, preto):
-    return preto(esq) and preto(dir)
+    if preto(esq) and preto(dir):
+        LOG("cruzamento")
+        bipes.cruzamento()
+        return True
+    return False
 
 def até_dist_max(dist_max):
     def func(dist, esq, centro, dir, preto):
-        return dist >= dist_max
+        if dist >= dist_max:
+            LOG("distância_max")
+            return True
+        return False
     return func
 
 def até_dist_max_ou_cruzamento(dist_max):
@@ -455,10 +474,10 @@ def andar_dist_linha(dist, **kwargs):
 
 def achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
     seguir_linha_até(até_dist_max_ou_cruzamento(dist_max), **kwargs)
-    bipes.separador()
 
 
-mul_direção_seguir_linha = 1
+DIR_ESQ, DIR_DIR = -1, 1
+mul_direção_seguir_linha = DIR_DIR
 def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
                      *, vel=None, kp=.50, _kd=0, _ki=0, parar_no_verde=True):
     if vel is None: vel = 70
@@ -489,14 +508,17 @@ def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
 
 def curva_linha_esquerda():
     global mul_direção_seguir_linha
-    mul_direção_seguir_linha = +1
+    mul_direção_seguir_linha = DIR_DIR
     rodas.curve(DIST_EIXO_SENSOR, -90)
+
+    orientação_estimada = sentido_antihorário()
 
 def curva_linha_direita():
     global mul_direção_seguir_linha
-    mul_direção_seguir_linha = -1
+    mul_direção_seguir_linha = DIR_ESQ
     rodas.curve(DIST_EIXO_SENSOR, +90)
 
+    orientação_estimada = sentido_horário()
 
 def alinha_parede(vel, vel_ang, giro_max=45,
                   func_cor_pista=Cor.area_livre,
@@ -603,49 +625,57 @@ def alinha_re(max_tentativas=3,
     return extra
 
 def seguir_caminho(caminho): #! lidar com outras coisas
-    def interpretar_movimento_livre(mov):
-        #! fazer run length encoding aqui
-        if   mov == tipo_movimento.FRENTE:
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
-        elif mov == tipo_movimento.TRAS:
-            dar_meia_volta()
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
-        elif mov == tipo_movimento.ESQUERDA_FRENTE:
-            virar_esquerda()
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
-        elif mov == tipo_movimento.DIREITA_FRENTE:
-            virar_direita()
-            rodas.straight(TAM_BLOCO, then=Stop.COAST)
-        elif mov == tipo_movimento.ESQUERDA:
-            virar_esquerda()
-        elif mov == tipo_movimento.DIREITA:
-            virar_direita()
+    def interpretar_movimento_livre(mov, count):
+        for _ in range(count):
+            if   mov == tipo_movimento.FRENTE:
+                rodas.straight(TAM_BLOCO, then=Stop.COAST)
+            elif mov == tipo_movimento.TRAS:     dar_meia_volta()
+            elif mov == tipo_movimento.ESQUERDA: virar_esquerda()
+            elif mov == tipo_movimento.DIREITA:  virar_direita()
 
-    def interpretar_movimento_cidade(mov):
-        #! fazer run length encoding aqui
-        if   mov == tipo_movimento.FRENTE:
-            achar_cruzamento_linha(dist_max=TAM_BLOCO)
-        elif mov == tipo_movimento.TRAS:
-            dar_meia_volta_linha()
-            achar_cruzamento_linha(dist_max=TAM_BLOCO)
-        elif mov == tipo_movimento.ESQUERDA_FRENTE:
-            curva_linha_esquerda()
-            achar_cruzamento_linha(dist_max=DIST_EIXO_SENSOR)
-        elif mov == tipo_movimento.DIREITA_FRENTE:
-            curva_linha_direita()
-            achar_cruzamento_linha(dist_max=TAM_BLOCO)
-        elif mov == tipo_movimento.ESQUERDA:
-            curva_linha_esquerda()
-        elif mov == tipo_movimento.DIREITA:
-            curva_linha_direita()
+    def interpretar_movimento_cidade(mov, count):
+        for _ in range(count//2):
+            if   mov == tipo_movimento.TRAS: pass
+            elif mov == tipo_movimento.FRENTE:
+                 cor, diff = verificar_quarteirão()
+                 if cor: raise CuboInesperado()
+                 else: blt.abrir_garra()
+            elif mov == tipo_movimento.ESQUERDA: dar_meia_volta_linha()
+            elif mov == tipo_movimento.DIREITA:  dar_meia_volta_linha()
+
+        if (count % 2) == 1:
+            if   mov == tipo_movimento.FRENTE:
+                achar_cruzamento_linha(dist_max=TAM_BLOCO+TAM_FAIXA)
+                cor = verificar_cubo()
+                if cor: raise CuboInesperado()
+                else: blt.abrir_garra()
+            elif mov == tipo_movimento.TRAS:     dar_meia_volta_linha()
+            elif mov == tipo_movimento.ESQUERDA: curva_linha_esquerda()
+            elif mov == tipo_movimento.DIREITA:  curva_linha_direita()
 
     if na_grade: interpretar_movimento = interpretar_movimento_cidade
     else:        interpretar_movimento = interpretar_movimento_livre
 
+    def rle_encode(caminho):
+        encoded = []
+
+        it = iter(caminho)
+        try: prev = next(it)
+        except StopIteration: return encoded
+
+        count = 1
+        for curr in it:
+            if curr == prev: count += 1
+            else:
+                encoded.append((prev, count))
+                prev = curr; count = 1
+        encoded.append((prev, count))
+        return encoded
+
     def interpretar_caminho(caminho): #! receber orientação?
-        for mov in caminho: #! yield orientação nova?
+        for mov, count in rle_encode(caminho): #! yield orientação nova?
             LOG(f"seguir_caminho: {tipo_movimento(mov)}")
-            interpretar_movimento(mov)
+            interpretar_movimento(mov, count)
             yield rodas.distance()
 
     movs, ori_final = achar_movimentos(caminho, orientação_estimada)
@@ -708,30 +738,6 @@ def posicionamento_inicial():
             orientação_estimada = "O"
             virar_direita()
 
-'''def posicionamento():
-    global orientação_estimada
-
-    viu_vermelho = False
-    while not (viu_vermelho and orientação_estimada == "L"):
-        esq, dir = achar_não_verde_alinhado()
-
-        bipes.separador()
-        if   esq.beco() or dir.beco():
-            #ASSERT(esq.beco() and dir.beco(), f"pos_ini: {esq} == {dir}")
-            dar_ré_alinhar_primeiro_bloco()
-            viu_vermelho = True
-            virar_esquerda()
-        elif esq.azul() or dir.azul():
-            #ASSERT(esq.azul() and dir.azul(), f"pos_ini: {esq} == {dir}")
-            dar_ré_meio_quarteirão()
-            orientação_estimada = "L"
-            virar_direita()
-        else:
-            #ASSERT(esq.amarelo() or dir.amarelo(), f"pos_ini: {esq} e {dir} assumidos amarelo")
-            dar_ré_meio_quarteirão()
-            orientação_estimada = "O"
-            virar_esquerda()'''
-
 def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS):
     global cubos_caçambas
     margem      = TAM_CUBO//2 if max_cubos != 1 else (TAM_CUBO*3)//2
@@ -780,6 +786,28 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS):
 
     SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
 
+def verificar_cubo():
+    ang = blt.fechar_garra()
+    cor = blt.ver_cor_cubo()
+    if ang > ANG_LIMIAR_GARRA_FECHADA or cor == Cor.enum.NENHUMA:
+        LOG("verifica_cubo: cel livre fechou tudo")
+        return None
+    else:
+        LOG(f"verifica_cubo: cel com cubo {cor}")
+        return cor
+
+def verificar_quarteirão():
+    DIST_VER_CUBO = DIST_CRUZAMENTO_CUBO + DIST_EIXO_SENSOR
+    andar_dist_linha(DIST_VER_CUBO)
+
+    cubo = verificar_cubo()
+    if cubo: return cubo, 1
+
+    achar_cruzamento_linha(dist_max=TAM_QUARTEIRÃO-DIST_CRUZAMENTO_CUBO+10)
+    andar_dist_linha(TAM_FAIXA)
+
+    return None, 2 #! Cor.enum.NENHUMA?
+
 #! considerar adversário
 def varredura(pos_estimada, caçambas):
     blt.resetar_garra()
@@ -791,26 +819,14 @@ def varredura(pos_estimada, caçambas):
     andar_dist_linha(TAM_FAIXA)
     pos = y, x
     while x < MAPA_X_MAX-2:
-        DIST_VER_CUBO = DIST_CRUZAMENTO_CUBO + DIST_EIXO_SENSOR
-        andar_dist_linha(DIST_VER_CUBO)
-        x += 1 #! para procura genérico, considerar orientação
-
-        ang = blt.fechar_garra()
-        cor = blt.ver_cor_cubo()
-        if ang > ANG_LIMIAR_GARRA_FECHADA or cor == Cor.enum.NENHUMA: #! constantizar
-            LOG("varredura: cel livre fechou tudo")
-
+        cor, num = verificar_quarteirão()
+        x += num
+        if cor:
+            luzes.mostrar(cor.color); break
+            #! fzr printar em braco
+        else:
             tira_obstaculo((y,x))
             blt.abrir_garra()
-        else:
-            luzes.mostrar(cor.color) #! fzr printar em braco
-            break
-
-        achar_cruzamento_linha(dist_max=TAM_QUARTEIRÃO-DIST_CRUZAMENTO_CUBO+10)
-        andar_dist_linha(TAM_FAIXA)
-        x += 1 #! para procura genérico, considerar orientação
-    else:
-        cor = None
 
     deixar = False
     if cor:

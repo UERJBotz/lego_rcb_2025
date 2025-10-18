@@ -66,6 +66,7 @@ class bipes:
     separador  = lambda: hub.speaker.beep(frequency=600, duration=200)
     calibracao = lambda: hub.speaker.beep(frequency=300, duration=100)
     cabeca     = lambda: hub.speaker.beep(frequency=600, duration=100)
+    cruzamento = lambda: hub.speaker.beep(frequency=300, duration=200)
 
     falha      = lambda: (hub.speaker.beep(frequency=800, duration=500), wait(200),
                           hub.speaker.beep(frequency=800, duration=500),)
