@@ -319,7 +319,7 @@ def dar_ré_meio_quarteirao():
     dar_ré(TAM_BLOCO - DIST_EIXO_SENSOR)
     LOG("dar_ré_meio_quarteirão: ré")
 
-#! provavelmente mudar andar_ate pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
+#! provavelmente mudar andar_até pra receber uma fn -> bool e retornar só bool, dist (pegar as informações extras na própria função)
 
 def ver_não_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     esq, dir = cores.todas(sensor_cor_esq, sensor_cor_dir)
@@ -419,24 +419,24 @@ def até_dist_max_ou_cruzamento(dist_max):
 
 def dar_ré_linha(dist, **kwargs):
     LOG("dar re linha", dist)
-    seguir_linha_ate(até_dist_max(dist), vel=-70, **kwargs) #! vel hardcoded
+    seguir_linha_até(até_dist_max(dist), vel=-70, **kwargs) #! vel hardcoded
 
 def dar_ré_achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
     LOG("dar re achar cruzamento linha", dist_max)
-    seguir_linha_ate(até_dist_max_ou_cruzamento(dist_max), vel=-70, **kwargs) #! vel hardcoded
+    seguir_linha_até(até_dist_max_ou_cruzamento(dist_max), vel=-70, **kwargs) #! vel hardcoded
 
 def andar_dist_linha(dist, **kwargs):
     LOG("andar dist linha", dist)
-    seguir_linha_ate(até_dist_max(dist), **kwargs)
+    seguir_linha_até(até_dist_max(dist), **kwargs)
 
 def achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
     LOG("achar cruzamento linha", dist_max)
-    seguir_linha_ate(até_dist_max_ou_cruzamento(dist_max), **kwargs)
+    seguir_linha_até(até_dist_max_ou_cruzamento(dist_max), **kwargs)
     bipes.separador()
 
 
 mul_direção_seguir_linha = 1
-def seguir_linha_ate(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
+def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
                      *, vel=None, kp=.50, _kd=0, _ki=0, parar_no_verde=True):
     if vel is None: vel = 70
 
@@ -503,7 +503,7 @@ def alinha_parede(vel, vel_ang, giro_max=45,
             LOG(f"alinha_parede: torto pra esquerda {esq}, {dir}")
             GIRO = -giro_max
 
-        rodas.turn(GIRO, wait=False) #! fazer gira_ate
+        rodas.turn(GIRO, wait=False) #! fazer gira_até
         LOG("alinha_parede: girando")
         while not rodas.done():
             extra = cores.todas(sensor_cor_esq, sensor_cor_dir)
