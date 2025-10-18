@@ -126,7 +126,7 @@ def main():
             dar_ré_alinhar_primeiro_bloco()
             posicionamento_inicial()
 
-        while False:#quarteirão_atual <= MAPA_Y_MAX//2:
+        while quarteirão_atual <= MAPA_Y_MAX//2:
             LOG(f"main: varrendo: quarteirão {quarteirão_atual}")
 
             achar_não_verde_alinhado()
@@ -227,10 +227,10 @@ def test():
 
     if False: orientação_estimada = "N"
     if False: orientação_estimada = "S"
-    if True: orientação_estimada = "L"
+    if False: orientação_estimada = "L"
     if False: orientação_estimada = "O"
 
-    if True:
+    if False:
         pos_estimada = (0,0)
         orientação_estimada = "L"
 
@@ -458,9 +458,23 @@ def achar_cruzamento_linha(*, dist_max=TAM_PISTA_TODA, **kwargs):
     bipes.separador()
 
 
+def pid(kp, kd=0, ki=0):
+    ierro = erro_ant = 0
+    def f(erro):
+        nonlocal ierro
+        nonlocal erro_ant
+        derro = erro_ant - erro
+        ativ  = erro*kp + derro*kd + ierro*ki
+
+        erro_ant = erro
+        ierro   += erro
+        return ativ
+    return f
+
+pid_linha = pid(kp=.50) #! kd=1, ki=0.001
 mul_direção_seguir_linha = 1
 def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
-                     *, vel=None, kp=.50, _kd=0, _ki=0, parar_no_verde=True):
+                     *, vel=None, parar_no_verde=True):
     if vel is None: vel = 70
 
     if False: REFL_MIN, REFL_MAX = 13, 99
@@ -475,9 +489,8 @@ def seguir_linha_até(parada=até_dist_max_ou_cruzamento(TAM_PISTA_TODA),
         centro = sensor_cor_centro.reflection()
         dir    = sensor_cor_dir.reflection()
 
-        erro = REFL_IDEAL - centro
-        ang  = mul_direção_seguir_linha*(erro*kp)
-        rodas.drive(vel, ang)
+        erro = mul_direção_seguir_linha*(REFL_IDEAL - centro)
+        rodas.drive(vel, pid_linha(erro))
 
         if parada(rodas.distance(), esq, centro, dir, preto): break
         if parar_no_verde:
