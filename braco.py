@@ -3,8 +3,8 @@ from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
 from pybricks.parameters import Port, Button, Color, Direction, Side
 from pybricks.tools      import wait, StopWatch
-
-from comum import globais, bipes
+from cores import Cor
+from comum import globais, bipes, luzes
 from comum import LOG, ERRO, ASSERT
 
 import bluetooth as blt
@@ -107,7 +107,10 @@ def main():
         elif comando == blt.cmd.ver_dist_sensor_braco:
             dist = sensor_dist_dir.distance()
             blt.enviar_comando(blt.rsp.dist_sensor_braco, dist)
-
+        elif comando == blt.cmd.mostrar_cor:
+            cor, = args
+            luzes.mostrar(Cor(cor = cor).color)
+            blt.enviar_comando(blt.rsp.mostrei_cor)
 def test():
     ... # testar coisas aqui sem mudar o resto do código
     mapa_hsv = menu_calibração(sensor_cor_frente)

@@ -22,6 +22,7 @@ cmd = Enum("cmd", [
     "ver_cor_sensor_rabo",
     "ver_dist_sensor_braco", #! reordenar
     "levanta_garra_dist_sensor", #! reordenar
+    "mostrar_cor",
 ])
 
 rsp = Enum("rsp", [
@@ -35,6 +36,7 @@ rsp = Enum("rsp", [
     "cor_sensor_rabo",
     "dist_sensor_braco", #! reordenar
     "levantei_dist_sensor", #! reordenar
+    "mostrei_cor",
 ])
 
 def enviar_mensagem(*msg, enum):
@@ -100,3 +102,6 @@ def ver_dist_caçamba():
     enviar_comando(cmd.ver_dist_sensor_braco)
     return esperar_resposta(rsp.dist_sensor_braco)
 
+def mostrar_cor(cor):
+    enviar_comando(cmd.mostrar_cor, cor.cor)
+    return esperar_resposta(rsp.mostrei_cor)
