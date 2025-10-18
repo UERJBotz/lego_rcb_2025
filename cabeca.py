@@ -41,7 +41,7 @@ DIST_EIXO_SENSOR = 45
 DIST_EIXO_SENSOR_FRENTE = 110
 DIST_EIXO_SENSOR_TRAS = 110
 DIST_CRUZAMENTO_CUBO = TAM_BLOCO - DIST_EIXO_SENSOR_FRENTE
-DIST_EXTRA_CUBO = 0 #TAM_CUBO//2
+DIST_VOLTAR_CUBO = TAM_CUBO//2
 DIST_SENSORES_CENTRO = 20
 
 DIST_BORDA_CAÇAMBA = 130
@@ -61,16 +61,11 @@ cores_caçambas = []
 #! 2024: checar stall: jogar exceção
 #! 2024: checar cor errada no azul
 
-#! a gente não leva em consideração a distância entre o sensor e a roda
-##! na hora de começar a procura e não leva em consideração a distância
-##! entre a roda e a garra na hora de pegar
+#! quando sofrer exceção e DEBUG == False, entrar num estado que só espera o reset
 
-#! a procura para no meio quando vê um cubo desconhecido e acha que é catástrofe
+#! a procura para(va) no meio quando vê um cubo desconhecido e acha que é catástrofe
 
-#! adicionar botão de "soft-reset", que faz o robô começar do início mas
-##! ainda com o estado dele (caçambas etc)
-##! fazer com bluetooth no braco pra ser mais fácil de apertar
-##! quando sofrer exceção e DEBUG == False, entrar num estado que só espera isso
+#! na varredura, quando vê azul, parar de ir e reclamar do inimigo
 
 
 def setup():
@@ -126,7 +121,7 @@ def main():
             dar_ré_alinhar_primeiro_bloco()
             posicionamento_inicial()
 
-        while False: #rua_atual <= MAPA_Y_MAX//2:
+        while rua_atual <= MAPA_Y_MAX//2:
             achar_não_verde_alinhado()
             rodas.straight(DIST_EIXO_SENSOR)
             cor, pos_estimada = varredura(pos_estimada, cores_caçambas)
@@ -203,7 +198,7 @@ def test():
     if False: tira_obstaculo((3,3))
     if False: tira_obstaculo((4,4))
 
-    if False:
+    if True:
         cores_caçambas = [
             Cor.enum.NENHUMA for _ in range(NUM_CAÇAMBAS)
         ]
@@ -262,6 +257,9 @@ class mudar_velocidade():
     def __exit__(self, exc_type, exc_value, exc_traceback): 
         self.rodas.settings(*self.conf_anterior)
 
+def SucessoOuCatástrofe(*args):
+    ERRO("SUCESSO OU CATÁSTROFE", *args) #! if DEBUG: raise ...
+
 def inverte_orientação(ori=None):
     if ori == None: ori = orientação_estimada
 
@@ -278,6 +276,9 @@ def dar_meia_volta():
 
     orientação_estimada = inverte_orientação()
     LOG(f"dar_meia_volta: {orientação_estimada=}")
+
+#! separar esses ifelses de orientação pra girar_orientação esq e dir que nem inverte_orientação
+##! aí fazer as funções de curva também chamarem essa nova também
 
 def virar_direita():
     global orientação_estimada
@@ -696,19 +697,11 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS): #! suport
     dar_ré(DIST_BORDA_CAÇAMBA + DIST_EIXO_SENSOR)
     dar_meia_volta()
 
-def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS): #! suportar 3 cubos rs
-    global cubos_caçambas
-    margem      = TAM_CUBO//2 if max_cubos != 1 else (TAM_CUBO*3)//2
-    espaçamento = TAM_CUBO    if max_cubos == 2 else 0
-
-    ASSERT(cor_cubo != Cor.enum.NENHUMA)
-    blt.levantar_garra()
-    alinhar_caçambas()
     for i, (cor, dist) in enumerate(zip(cores_caçambas, DISTS_CAÇAMBAS)):
         if cor_cubo == cor:
             if cubos_caçambas[i] > max_cubos: continue
 
-            rodas.straight(dist - DIST_BORDA_CAÇAMBA - margem
+            rodas.straight(dist - DIST_BORDA_CAÇAMBA + margem
                           + cubos_caçambas[i]*(TAM_CUBO + espaçamento))
             blt.abaixar_garra()
             blt.levantar_garra()
@@ -721,7 +714,7 @@ def colocar_cubo_na_caçamba(cor_cubo, max_cubos=NUM_CUBOS_PEGÁVEIS): #! suport
             cubos_caçambas[i] += 1
             return
 
-    raise SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
+    SucessoOuCatástrofe("sem lugar pro cubo nas caçambas")
 
 #! considerar adversário
 def varredura(pos_estimada, caçambas):
@@ -853,21 +846,24 @@ def procura(pos_estimada, cores_caçambas):
 
     imprimir_mapa()
 
-    raise SucessoOuCatástrofe()
+    SucessoOuCatástrofe("sem caminhos possíveis")
 
 def descobrir_cor_caçambas():
     global cores_caçambas
     if not cores_caçambas:
         cores_caçambas = [Cor(cor=Cor.enum.NENHUMA) for i in range(NUM_CAÇAMBAS)]
-    
+
+    DIST_ALINHO = TAM_BLOCO//2
+
     acertar_orientação("O")
     achar_não_verde_alinhado()
     rodas.straight(DIST_SENSORES_CENTRO)
     acertar_orientação("S")
+
     #gambiarra ver o 1 com cor incerta
-    achar_cruzamento_linha(vel = 20, dist_max=(TAM_BLOCO//2))
-    achar_cruzamento_linha(vel = 50, dist_max=(DIST_BORDA_CAÇAMBA))
-    
+    andar_dist_linha(DIST_ALINHO, vel = 20)
+    andar_dist_linha(DIST_BORDA_CAÇAMBA - DIST_ALINHO, vel = 50)
+
     for i in range(NUM_CAÇAMBAS):
         cores_caçambas[i] = blt.ver_cor_caçamba()
         bipes.cabeca()
@@ -876,9 +872,9 @@ def descobrir_cor_caçambas():
         #! rataria cores caçambas
         if cores_caçambas[i].cor == Cor.enum.MARROM:
             cores_caçambas[i] = Cor(cor=Cor.enum.AMARELO)
-        if cores_caçambas[i].cor == Cor.enum.PRETO:
-            if False: cores_caçambas[i] = Cor(cor=Cor.enum.AZUL)
-            else:    cores_caçambas[i] = Cor(cor=Cor.enum.VERDE)
+        #if cores_caçambas[i].cor == Cor.enum.PRETO:
+        #    if False: cores_caçambas[i] = Cor(cor=Cor.enum.AZUL)
+        #    else:    cores_caçambas[i] = Cor(cor=Cor.enum.VERDE)
         if cores_caçambas[i].cor == Cor.enum.NENHUMA:
             if dist < TAM_QUARTEIRAO:
                 cores_caçambas[i] = Cor(cor=Cor.enum.PRETO)
@@ -886,7 +882,7 @@ def descobrir_cor_caçambas():
         LOG(f"descobrir_cor_caçamba: caçamba {cores_caçambas[i]} a {dist/10}cm")
 
         if i+1 < NUM_CAÇAMBAS:
-            achar_cruzamento_linha(vel = 80, dist_max = TAM_CAÇAMBA+DIST_CAÇAMBA)
+            andar_dist_linha(TAM_CAÇAMBA+DIST_CAÇAMBA, vel = 80)
     LOG(f"descobrir_cor_caçamba: cores_caçambas = {cores_caçambas}")
     rodas.turn(10)
     dar_ré(TAM_BLOCO//4)
