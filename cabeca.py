@@ -169,8 +169,13 @@ def main():
 
 def test():
     global orientação_estimada, pos_estimada, na_grade, cores_caçambas
-    blt.SILENCIOSO = True
     ... # testar coisas aqui sem mudar o resto do código
+    blt.SILENCIOSO = True
+    
+    while False:
+        cor = blt.ver_cor_cubo()
+        print(cor)
+        blt.mostrar_cor(cor)
 
     while False:
         andar_dist_linha(TAM_BLOCO)
@@ -898,7 +903,7 @@ def procura(pos_estimada, cores_caçambas):
             continue
 
         cor = blt.ver_cor_cubo()
-        luzes.mostrar(cor.color) #! fzr printar em braco
+        blt.mostrar_cor(cor)
         if cor == Cor.enum.BRANCO:
             bipes.cabeca()
         if cor == Cor.enum.NENHUMA:
