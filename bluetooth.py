@@ -57,8 +57,8 @@ def esperar_resposta(esperado, canal=TX_BRACO):
             if not SILENCIOSO: print(f"esperar_resposta: recebido({canal}) {rsp(resposta[0])}{resposta[1:]}")
             if resposta is not None:
                 resposta, *args = resposta
-        except RuntimeError:
-            continue
+        except RuntimeError: continue
+        except UnicodeError: continue
     if len(args) == 1: return args[0]
     return args
 

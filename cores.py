@@ -51,6 +51,7 @@ class Cor:
 
     def __str__(self):
         return f"{self.enum(self.cor)}[{self.h}, {self.s}, {self.v}]"
+    def __repr__(self): return self.__str__()
 
     def preto(self):    return (self.color == Color.PRETO)
     def azul(self):     return (self.color == Color.BLUE)

@@ -69,6 +69,9 @@ mapa = [
     [Safe(estado=estado_celula.LIVRE), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz(), Hori(), Cruz()],
 ]
 
+MAPA_X_MAX = len(mapa[0]) -1
+MAPA_Y_MAX = len(mapa)    -1
+
 def coloca_obstaculo(pos):
     y, x = pos; cel = mapa[y][x]
     if cel.mutável: #! falhar mais alto

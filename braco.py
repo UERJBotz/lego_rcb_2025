@@ -171,6 +171,9 @@ if __name__ == "__main__":
       except RuntimeError as e:
         LOG(f"runtime error {e}")
         continue
+      except UnicodeError as e:
+        LOG(f"unicode error {e}")
+        continue
       except Exception as e:
         if DEBUG: raise e
         else:
